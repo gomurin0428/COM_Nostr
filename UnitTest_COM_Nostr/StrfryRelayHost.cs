@@ -31,6 +31,12 @@ internal sealed class StrfryRelayHost : IAsyncDisposable
         var volumePath = Path.Combine(Path.GetTempPath(), containerName);
         Directory.CreateDirectory(volumePath);
 
+        var policyPath = Path.Combine(volumePath, "write-policy.py");
+        var policyScript = "#!/usr/bin/env python3\nimport json, sys\nfor line in sys.stdin:\n    request = json.loads(line)\n    event = request.get('event', {})\n    response = {'id': event.get('id', ''), 'action': 'accept'}\n    json.dump(response, sys.stdout, separators=(',', ':'))\n    sys.stdout.write('\\n')\n    sys.stdout.flush()\n";
+        await File.WriteAllTextAsync(policyPath, policyScript).ConfigureAwait(false);
+
+        var policyMount = $"{policyPath.Replace("\\", "/")}:/app/write-policy.py";
+
         await RunDockerAsync(new[]
         {
             "run",
@@ -40,6 +46,8 @@ internal sealed class StrfryRelayHost : IAsyncDisposable
             $"{port}:7777",
             "-v",
             $"{volumePath}:/app/strfry-db",
+            "-v",
+            policyMount,
             "--name",
             containerName,
             "dockurr/strfry"

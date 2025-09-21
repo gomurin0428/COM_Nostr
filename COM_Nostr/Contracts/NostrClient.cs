@@ -25,6 +25,8 @@ public sealed class NostrClient : INostrClient
     private const int EInvalidarg = unchecked((int)0x80070057);
     private const int EPointer = unchecked((int)0x80004003);
     private const int ETimeout = unchecked((int)0x800705B4);
+    private static readonly TimeSpan DefaultPublishAckTimeout = TimeSpan.FromSeconds(10);
+    private const int PublishRetryAttempts = 3;
 
     private readonly object _syncRoot = new();
     private readonly Dictionary<string, NostrRelaySession> _relaySessions = new(StringComparer.OrdinalIgnoreCase);
@@ -310,7 +312,156 @@ public sealed class NostrClient : INostrClient
 
     public void PublishEvent(string relayUrl, NostrEvent eventPayload)
     {
-        throw new NotImplementedException();
+        var resources = EnsureResources();
+
+        if (eventPayload is null)
+        {
+            throw new COMException("Event payload must not be null.", EPointer);
+        }
+
+        var session = GetSessionOrThrow(relayUrl);
+
+        if (!session.WriteEnabled)
+        {
+            throw new COMException($"Relay '{relayUrl}' is not configured for writing.", EInvalidarg);
+        }
+
+        var signer = EnsureSigner();
+
+        NostrEvent normalizedEvent;
+        NostrEventDraft draft;
+
+        try
+        {
+            normalizedEvent = NormalizeEvent(eventPayload);
+            draft = CreateDraftForSigning(normalizedEvent);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new COMException(ex.Message, EInvalidarg);
+        }
+        catch (Exception ex)
+        {
+            throw new COMException("Failed to prepare Nostr event payload.", ex);
+        }
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(normalizedEvent.Signature))
+            {
+                var signature = signer.Sign(draft);
+                normalizedEvent.PublicKey = NormalizeHex(draft.PublicKey);
+                normalizedEvent.Signature = NormalizeHex(signature);
+            }
+            else
+            {
+                normalizedEvent.PublicKey = NormalizeHex(normalizedEvent.PublicKey);
+                normalizedEvent.Signature = NormalizeHex(normalizedEvent.Signature);
+                draft.PublicKey = normalizedEvent.PublicKey;
+            }
+
+            if (string.IsNullOrEmpty(normalizedEvent.PublicKey))
+            {
+                throw new ArgumentException("NostrEvent.PublicKey must be specified when publishing.", nameof(NostrEvent.PublicKey));
+            }
+
+            draft.PublicKey = normalizedEvent.PublicKey;
+            normalizedEvent.Id = NormalizeHex(NostrSigner.ComputeEventId(draft, normalizedEvent.PublicKey));
+        }
+        catch (COMException)
+        {
+            throw;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new COMException(ex.Message, EInvalidarg);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new COMException(ex.Message, ex);
+        }
+        catch (Exception ex)
+        {
+            throw new COMException("Failed to sign Nostr event payload.", ex);
+        }
+
+        if (string.IsNullOrEmpty(normalizedEvent.Signature))
+        {
+            throw new COMException("Event signature must not be empty after signing.", EInvalidarg);
+        }
+
+        CopyEvent(normalizedEvent, eventPayload);
+
+        IReadOnlyList<IReadOnlyList<string>> tagsForDto;
+        long createdAtSeconds;
+
+        try
+        {
+            tagsForDto = ConvertTagsToDto(normalizedEvent.Tags);
+            createdAtSeconds = ToUnixSeconds(normalizedEvent.CreatedAt);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new COMException(ex.Message, EInvalidarg);
+        }
+        catch (Exception ex)
+        {
+            throw new COMException("Failed to serialize Nostr event payload.", ex);
+        }
+
+        var eventDto = new NostrEventDto(
+            normalizedEvent.Id,
+            normalizedEvent.PublicKey,
+            createdAtSeconds,
+            normalizedEvent.Kind,
+            tagsForDto,
+            normalizedEvent.Content,
+            normalizedEvent.Signature);
+
+        try
+        {
+            var ok = session.PublishEvent(
+                eventDto,
+                DeterminePublishAckTimeout(resources.Options),
+                PublishRetryAttempts);
+
+            if (!ok.Success)
+            {
+                var message = string.IsNullOrEmpty(ok.Message)
+                    ? $"Relay '{relayUrl}' rejected event '{ok.EventId}'."
+                    : $"Relay '{relayUrl}' rejected event '{ok.EventId}': {ok.Message}";
+
+                throw new COMException(message, ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+            }
+        }
+        catch (TimeoutException)
+        {
+            throw new COMException($"Publishing event on '{relayUrl}' timed out.", ETimeout);
+        }
+        catch (OperationCanceledException)
+        {
+            throw new COMException($"Publishing event on '{relayUrl}' was canceled.", ETimeout);
+        }
+        catch (WebSocketException ex)
+        {
+            throw new COMException($"Failed to publish event on '{relayUrl}'. {ex.Message}", ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new COMException(ex.Message, EInvalidarg);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new COMException(ex.Message, ex);
+        }
+        catch (COMException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new COMException($"Failed to publish event on '{relayUrl}'.", ex);
+        }
     }
 
     public void RespondAuth(string relayUrl, NostrEvent authEvent)
@@ -353,6 +504,19 @@ public sealed class NostrClient : INostrClient
         {
             EnsureInitializedUnsafe();
             return _resources!;
+        }
+    }
+
+    private INostrSigner EnsureSigner()
+    {
+        lock (_syncRoot)
+        {
+            if (_signer is null)
+            {
+                throw new COMException("Signer must be configured via SetSigner before publishing events.", ComErrorCodes.E_NOSTR_SIGNER_MISSING);
+            }
+
+            return _signer;
         }
     }
 
@@ -487,6 +651,174 @@ public sealed class NostrClient : INostrClient
 
         throw new ArgumentException($"{propertyName} must be parsable as a number.", propertyName);
     }
+
+
+    private static TimeSpan DeterminePublishAckTimeout(ClientRuntimeOptions options)
+    {
+        if (options is not null && options.ReceiveTimeout.HasValue && options.ReceiveTimeout.Value > TimeSpan.Zero)
+        {
+            return options.ReceiveTimeout.Value;
+        }
+
+        return DefaultPublishAckTimeout;
+    }
+
+    private static NostrEvent NormalizeEvent(NostrEvent source)
+    {
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        return new NostrEvent
+        {
+            Id = source.Id ?? string.Empty,
+            PublicKey = source.PublicKey ?? string.Empty,
+            CreatedAt = NormalizeCreatedAt(source.CreatedAt),
+            Kind = source.Kind,
+            Tags = CloneEventTags(source.Tags),
+            Content = source.Content ?? string.Empty,
+            Signature = source.Signature ?? string.Empty
+        };
+    }
+
+    private static NostrEventDraft CreateDraftForSigning(NostrEvent source)
+    {
+        return new NostrEventDraft
+        {
+            PublicKey = source.PublicKey,
+            CreatedAt = source.CreatedAt,
+            Kind = source.Kind,
+            Tags = CloneEventTags(source.Tags),
+            Content = source.Content
+        };
+    }
+
+    private static double NormalizeCreatedAt(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0)
+        {
+            return DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        }
+
+        if (value > long.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(NostrEvent.CreatedAt), "CreatedAt exceeds UNIX timestamp range.");
+        }
+
+        return value;
+    }
+
+    private static long ToUnixSeconds(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value))
+        {
+            throw new ArgumentException("CreatedAt must be a finite number.", nameof(NostrEvent.CreatedAt));
+        }
+
+        var floored = Math.Floor(value);
+        if (floored < 0)
+        {
+            throw new ArgumentException("CreatedAt must not be negative.", nameof(NostrEvent.CreatedAt));
+        }
+
+        if (floored > long.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(NostrEvent.CreatedAt), "CreatedAt exceeds UNIX timestamp range.");
+        }
+
+        return (long)floored;
+    }
+
+    private static IReadOnlyList<IReadOnlyList<string>> ConvertTagsToDto(object[]? tags)
+    {
+        if (tags is null || tags.Length == 0)
+        {
+            return Array.Empty<IReadOnlyList<string>>();
+        }
+
+        var result = new List<IReadOnlyList<string>>(tags.Length);
+
+        foreach (var tag in tags)
+        {
+            if (tag is string[] stringArray)
+            {
+                var copy = new string[stringArray.Length];
+                for (var i = 0; i < stringArray.Length; i++)
+                {
+                    copy[i] = stringArray[i] ?? string.Empty;
+                }
+
+                result.Add(copy);
+            }
+            else if (tag is object[] objectArray)
+            {
+                var copy = new string[objectArray.Length];
+                for (var i = 0; i < objectArray.Length; i++)
+                {
+                    copy[i] = objectArray[i]?.ToString() ?? string.Empty;
+                }
+
+                result.Add(copy);
+            }
+            else
+            {
+                throw new ArgumentException("Each tag must be specified as an array of strings.", nameof(NostrEvent.Tags));
+            }
+        }
+
+        return result;
+    }
+
+    private static string NormalizeHex(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return value.Trim().ToLowerInvariant();
+    }
+
+    private static object[] CloneEventTags(object[]? tags)
+    {
+        if (tags is null || tags.Length == 0)
+        {
+            return Array.Empty<object>();
+        }
+
+        var result = new object[tags.Length];
+        for (var i = 0; i < tags.Length; i++)
+        {
+            var tag = tags[i];
+            if (tag is string[] stringArray)
+            {
+                result[i] = stringArray.ToArray();
+            }
+            else if (tag is object[] objectArray)
+            {
+                result[i] = objectArray.ToArray();
+            }
+            else
+            {
+                result[i] = tag ?? string.Empty;
+            }
+        }
+
+        return result;
+    }
+
+    private static void CopyEvent(NostrEvent source, NostrEvent target)
+    {
+        target.Id = source.Id;
+        target.PublicKey = source.PublicKey;
+        target.CreatedAt = source.CreatedAt;
+        target.Kind = source.Kind;
+        target.Tags = CloneEventTags(source.Tags);
+        target.Content = source.Content;
+        target.Signature = source.Signature;
+    }
+
 
     private static NostrFilter[] NormalizeFilters(NostrFilter[]? filters)
     {
@@ -718,6 +1050,8 @@ public sealed class NostrRelaySession : INostrRelaySession
 
     private readonly object _subscriptionLock = new();
     private readonly Dictionary<string, NostrSubscription> _subscriptions = new(StringComparer.Ordinal);
+    private readonly object _pendingPublishLock = new();
+    private readonly Dictionary<string, TaskCompletionSource<NostrOkMessage>> _pendingPublishes = new(StringComparer.OrdinalIgnoreCase);
 
     private RelayDescriptor _descriptor;
     private RelaySessionState _state = RelaySessionState.Disconnected;
@@ -1078,6 +1412,16 @@ public sealed class NostrRelaySession : INostrRelaySession
         if (string.Equals(messageType, "OK", StringComparison.Ordinal))
         {
             var ok = _serializer.DeserializeOk(payload);
+            TaskCompletionSource<NostrOkMessage>? pending = null;
+
+            lock (_pendingPublishLock)
+            {
+                if (_pendingPublishes.TryGetValue(ok.EventId, out pending))
+                {
+                    _pendingPublishes.Remove(ok.EventId);
+                }
+            }
+
             lock (_stateLock)
             {
                 _lastOkResult = new NostrOkResult
@@ -1086,6 +1430,13 @@ public sealed class NostrRelaySession : INostrRelaySession
                     EventId = ok.EventId,
                     Message = ok.Message
                 };
+            }
+
+            pending?.TrySetResult(ok);
+
+            if (!ok.Success && !string.IsNullOrEmpty(ok.Message))
+            {
+                BroadcastNotice(ok.Message);
             }
         }
         else if (string.Equals(messageType, "EVENT", StringComparison.Ordinal))
@@ -1260,6 +1611,100 @@ public sealed class NostrRelaySession : INostrRelaySession
     {
         var payload = _serializer.SerializeClose(subscriptionId);
         SendPayload(payload);
+    }
+
+    internal NostrOkMessage PublishEvent(NostrEventDto eventDto, TimeSpan ackTimeout, int maxAttempts)
+    {
+        if (eventDto is null)
+        {
+            throw new ArgumentNullException(nameof(eventDto));
+        }
+
+        if (maxAttempts <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxAttempts));
+        }
+
+        var payload = _serializer.SerializeEvent(eventDto);
+        var completion = RegisterPublishAck(eventDto.Id);
+        var backoff = new BackoffPolicy(TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(2));
+        var attempts = 0;
+
+        try
+        {
+            while (true)
+            {
+                attempts++;
+
+                try
+                {
+                    SendPayload(payload);
+                }
+                catch (OperationCanceledException) when (attempts < maxAttempts)
+                {
+                    Task.Delay(backoff.GetNextDelay()).GetAwaiter().GetResult();
+                    continue;
+                }
+                catch (WebSocketException) when (attempts < maxAttempts)
+                {
+                    Task.Delay(backoff.GetNextDelay()).GetAwaiter().GetResult();
+                    continue;
+                }
+
+                try
+                {
+                    if (ackTimeout > TimeSpan.Zero)
+                    {
+                        return completion.Task.WaitAsync(ackTimeout).GetAwaiter().GetResult();
+                    }
+
+                    return completion.Task.GetAwaiter().GetResult();
+                }
+                catch (TimeoutException) when (attempts < maxAttempts)
+                {
+                    Task.Delay(backoff.GetNextDelay()).GetAwaiter().GetResult();
+                    continue;
+                }
+                catch (OperationCanceledException) when (attempts < maxAttempts)
+                {
+                    Task.Delay(backoff.GetNextDelay()).GetAwaiter().GetResult();
+                    continue;
+                }
+
+            }
+        }
+        finally
+        {
+            RemovePublishAck(eventDto.Id, completion);
+        }
+    }
+
+    private TaskCompletionSource<NostrOkMessage> RegisterPublishAck(string eventId)
+    {
+        if (string.IsNullOrWhiteSpace(eventId))
+        {
+            throw new ArgumentException("Event identifier must not be null or whitespace.", nameof(eventId));
+        }
+
+        var tcs = new TaskCompletionSource<NostrOkMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        lock (_pendingPublishLock)
+        {
+            _pendingPublishes[eventId] = tcs;
+        }
+
+        return tcs;
+    }
+
+    private void RemovePublishAck(string eventId, TaskCompletionSource<NostrOkMessage> completion)
+    {
+        lock (_pendingPublishLock)
+        {
+            if (_pendingPublishes.TryGetValue(eventId, out var existing) && ReferenceEquals(existing, completion))
+            {
+                _pendingPublishes.Remove(eventId);
+            }
+        }
     }
 
     private void SendPayload(ReadOnlyMemory<byte> payload)

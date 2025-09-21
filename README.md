@@ -55,7 +55,7 @@
 - `void DisconnectRelay([in] BSTR relayUrl)` : graceful に CLOSE→CLOSED を待機。強制切断時は `State=Faulted`。
 - `VARIANT_BOOL HasRelay([in] BSTR relayUrl)` : セッション存在確認。
 - `INostrSubscription* OpenSubscription([in] BSTR relayUrl, [in] SAFEARRAY(NostrFilter) filters, [in] INostrEventCallback* callback, [in] SubscriptionOptions options)` : REQ を発行し購読ハンドルを返す。`Id` は 64 文字 hex で自動生成し、コールバックは捕捉済み `SynchronizationContext` があればそちらへ、存在しない場合は内部キュー経由で順番にディスパッチする。`SubscriptionOptions.KeepAlive` が false のときは初回 `EOSE` 後に `CLOSE` を自動送信し、`AutoRequeryWindowSeconds` が正の値なら `UpdateFilters` 時に `since` を補正する。`MaxQueueLength` を設定するとキュー上限に達した古いイベントから破棄される。
-- `void PublishEvent([in] BSTR relayUrl, [in] NostrEvent eventPayload)` : EVENT 送信。Signature が空なら `INostrSigner` による署名＋Id 計算を内部実装し OK/NOTICE の応答を `LastOkResult` に反映。
+- `void PublishEvent([in] BSTR relayUrl, [in] NostrEvent eventPayload)` : EVENT 送信。Signature が空なら `INostrSigner` による署名＋Id 計算を内部実装し、リレーの `OK` 応答を `ClientOptions.ReceiveTimeout` (未指定時は 10 秒) まで待機して `LastOkResult` に反映。`OK.success=false` や `NOTICE` は `INostrEventCallback.OnNotice` に転送し、timeout は `HRESULT_FROM_WIN32(ERROR_TIMEOUT)`、拒否は `E_NOSTR_WEBSOCKET_ERROR` を返す。
 - `void RespondAuth([in] BSTR relayUrl, [in] NostrEvent authEvent)` : kind:22242 イベントを元に AUTH メッセージを送信。
 - `void RefreshRelayInfo([in] BSTR relayUrl)` : NIP-11 に従うメタ情報更新をトリガー。
 - `SAFEARRAY(BSTR) ListRelays()` : 登録済みリレー URL を列挙。
@@ -158,3 +158,4 @@
 - 設計メモ: `docs/phase0_design.md`
 - 仕様要約: `Nostrプロトコルの現行仕様まとめ.docx`
 - テキストファイル一覧: `TEXT_FILE_OVERVIEW.md`
+
