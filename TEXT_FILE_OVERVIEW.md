@@ -11,7 +11,7 @@
 | `COM_Nostr/Contracts/DataContracts.cs` | COM で公開するイベント、フィルタ、オプション等の DTO クラス群を定義し、`SubscriptionOptions.QueueOverflowStrategy` を追加。 |
 | `COM_Nostr/Contracts/Enums.cs` | リレー/サブスクリプション状態に加え、`QueueOverflowStrategy` 列挙体を提供。 |
 | `COM_Nostr/Contracts/Interfaces.cs` | INostrClient など COM インターフェイス群のメソッド／プロパティ契約を宣言。 |
-| `COM_Nostr/Contracts/NostrClient.cs` | `Initialize`/`RespondAuth`/`Dispose` を含む COM 実装本体。`HResults` を介した HRESULT マッピング、二重 Initialize ガード、クライアント破棄時のセッション掃除を実装。 |
+| `COM_Nostr/Contracts/NostrClient.cs` | `Initialize`/`RespondAuth`/`Dispose` を含む COM 実装本体。`ComCallbackDispatcher` を介したコールバック直列化、`HResults` を用いた HRESULT マッピング、二重 Initialize ガード、セッション掃除を実装。 |
 | `COM_Nostr/Contracts/NostrSigner.cs` | 環境変数の秘密鍵で Schnorr 署名とイベントID計算を行う COM 実装クラス。 |
 | `COM_Nostr/Internal/ClientRuntimeOptions.cs` | Initialize で正規化したタイムアウトや User-Agent を保持する内部設定モデル。 |
 | `COM_Nostr/Internal/ClientWebSocketConnection.cs` | `System.Net.WebSockets.ClientWebSocket` を `IWebSocketConnection` にラップする実装。 |
@@ -19,6 +19,7 @@
 | `COM_Nostr/Internal/IWebSocketFactory.cs` | 外部差し替え用ファクトリが実装すべき公開インターフェイス。 |
 | `COM_Nostr/Internal/NostrClientResources.cs` | HttpClient/WebSocket/シリアライザのファクトリを束ねたリソースホルダー。 |
 | `COM_Nostr/Internal/NostrJsonSerializer.cs` | EVENT/REQ/OK/NOTICE/EOSE/CLOSED/AUTH の JSON 変換ロジックと AUTH challenge デシリアライズを提供。 |
+| `COM_Nostr/Internal/ComCallbackDispatcher.cs` | 捕捉した `SynchronizationContext` または内部 STA ワーカースレッドで COM コールバックを直列実行するディスパッチャ実装。 |
 | `COM_Nostr/Internal/NostrFilterConverter.cs` | COM から渡された NostrFilter/NostrTagQuery を内部 DTO に正規化するユーティリティ。 |
 | `COM_Nostr/Internal/NostrProtocolModels.cs` | EVENT/REQ/OK/NOTICE/EOSE/CLOSED/AUTH 向け内部 DTO (AuthChallenge など) を定義する補助クラス群。 |
 | `COM_Nostr/Internal/WebSocketFactoryResolver.cs` | ProgID 解析とファクトリ生成・検証を担当するユーティリティ。 |

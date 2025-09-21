@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
@@ -15,6 +16,7 @@ using COM_Nostr.Internal;
 
 namespace COM_Nostr.Contracts;
 
+[SupportedOSPlatform("windows")]
 [ComVisible(true)]
 [Guid("7d3091fe-ca18-49ba-835c-012991076660")]
 [ClassInterface(ClassInterfaceType.None)]
@@ -29,7 +31,7 @@ public sealed class NostrClient : INostrClient, IDisposable
     private readonly Dictionary<string, NostrRelaySession> _relaySessions = new(StringComparer.OrdinalIgnoreCase);
 
     private NostrClientResources? _resources;
-    private SynchronizationContext? _callbackContext;
+    private ComCallbackDispatcher? _callbackDispatcher;
     private bool _initialized;
     private INostrSigner? _signer;
     private bool _disposed;
@@ -56,13 +58,13 @@ public sealed class NostrClient : INostrClient, IDisposable
         }
     }
 
-    internal SynchronizationContext? CallbackContext
+    internal ComCallbackDispatcher? CallbackDispatcher
     {
         get
         {
             lock (_syncRoot)
             {
-                return _callbackContext;
+                return _callbackDispatcher;
             }
         }
     }
@@ -97,7 +99,7 @@ public sealed class NostrClient : INostrClient, IDisposable
                 }
 
                 _resources = resources;
-                _callbackContext = capturedContext;
+                _callbackDispatcher = new ComCallbackDispatcher(capturedContext);
                 _initialized = true;
             }
         }
@@ -122,6 +124,7 @@ public sealed class NostrClient : INostrClient, IDisposable
     public void Dispose()
     {
         Dictionary<string, NostrRelaySession> sessions;
+        ComCallbackDispatcher? dispatcher = null;
 
         lock (_syncRoot)
         {
@@ -134,7 +137,8 @@ public sealed class NostrClient : INostrClient, IDisposable
             sessions = new Dictionary<string, NostrRelaySession>(_relaySessions);
             _relaySessions.Clear();
             _resources = null;
-            _callbackContext = null;
+            dispatcher = _callbackDispatcher;
+            _callbackDispatcher = null;
             _initialized = false;
             _signer = null;
         }
@@ -155,6 +159,8 @@ public sealed class NostrClient : INostrClient, IDisposable
                 session.MarkDisposed();
             }
         }
+
+        dispatcher?.Dispose();
     }
 
     public void SetSigner(INostrSigner signer)
@@ -186,7 +192,7 @@ public sealed class NostrClient : INostrClient, IDisposable
         }
 
         var resources = EnsureResources();
-        var callbackContext = CallbackContext;
+        var callbackDispatcher = CallbackDispatcher;
 
         Uri relayUri;
         try
@@ -210,7 +216,7 @@ public sealed class NostrClient : INostrClient, IDisposable
                 var normalizedDescriptor = CloneDescriptor(descriptor);
                 normalizedDescriptor.Url = RelayUriUtilities.ToCanonicalString(relayUri);
                 var httpClient = new NostrHttpClient(resources.HttpClientFactory);
-                session = new NostrRelaySession(relayUri, normalizedDescriptor, resources, httpClient, authCallback, callbackContext);
+                session = new NostrRelaySession(relayUri, normalizedDescriptor, resources, httpClient, authCallback, callbackDispatcher);
                 _relaySessions[key] = session;
             }
             else
@@ -343,7 +349,7 @@ public sealed class NostrClient : INostrClient, IDisposable
                 filterDtos,
                 callback,
                 configuration,
-                CallbackContext);
+                CallbackDispatcher);
         }
         catch (OperationCanceledException)
         {
@@ -1392,6 +1398,7 @@ public sealed class NostrClient : INostrClient, IDisposable
     }
 }
 
+[SupportedOSPlatform("windows")]
 [ComVisible(true)]
 [Guid("e53e9b56-da8d-4064-8df6-5563708f65a5")]
 [ClassInterface(ClassInterfaceType.None)]
@@ -1405,7 +1412,7 @@ public sealed class NostrRelaySession : INostrRelaySession
     private readonly Uri _metadataUri;
     private readonly NostrClientResources _resources;
     private readonly NostrHttpClient _httpClient;
-    private readonly SynchronizationContext? _callbackContext;
+    private readonly ComCallbackDispatcher? _callbackDispatcher;
     private readonly BackoffPolicy _backoffPolicy;
     private readonly NostrJsonSerializer _serializer;
     private readonly object _reconnectLock = new();
@@ -1441,14 +1448,14 @@ public sealed class NostrRelaySession : INostrRelaySession
         NostrClientResources resources,
         NostrHttpClient httpClient,
         INostrAuthCallback authCallback,
-        SynchronizationContext? callbackContext)
+        ComCallbackDispatcher? callbackDispatcher)
     {
         _webSocketUri = relayUri ?? throw new ArgumentNullException(nameof(relayUri));
         _metadataUri = RelayUriUtilities.BuildMetadataUri(relayUri);
         _resources = resources ?? throw new ArgumentNullException(nameof(resources));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _authCallback = authCallback ?? throw new ArgumentNullException(nameof(authCallback));
-        _callbackContext = callbackContext;
+        _callbackDispatcher = callbackDispatcher;
         _descriptor = CloneDescriptor(descriptor ?? throw new ArgumentNullException(nameof(descriptor)));
         _descriptor.Url = RelayUriUtilities.ToCanonicalString(relayUri);
         _serializer = resources.Serializer;
@@ -1917,7 +1924,7 @@ public sealed class NostrRelaySession : INostrRelaySession
         IReadOnlyList<NostrFilterDto> filterDtos,
         INostrEventCallback callback,
         SubscriptionConfiguration configuration,
-        SynchronizationContext? callbackContext)
+        ComCallbackDispatcher? callbackDispatcher)
     {
         ThrowIfDisposed();
 
@@ -1931,7 +1938,7 @@ public sealed class NostrRelaySession : INostrRelaySession
             throw new ArgumentNullException(nameof(callback));
         }
 
-        var subscription = new NostrSubscription(this, _descriptor.Url, subscriptionId, originalFilters, filterDtos, callback, callbackContext, configuration);
+        var subscription = new NostrSubscription(this, _descriptor.Url, subscriptionId, originalFilters, filterDtos, callback, callbackDispatcher, configuration);
         IReadOnlyList<NostrFilterDto> requestFilters;
 
         lock (_subscriptionLock)
@@ -2419,19 +2426,16 @@ public sealed class NostrRelaySession : INostrRelaySession
             ExpiresAt = expiresAt.HasValue ? expiresAt.Value : null
         };
 
-        if (_callbackContext is not null)
+        var dispatcher = _callbackDispatcher;
+        if (dispatcher is not null)
         {
-            var state = Tuple.Create(callback, contract);
-            _callbackContext.Post(static s =>
-            {
-                var tuple = (Tuple<INostrAuthCallback, AuthChallenge>)s!;
-                tuple.Item1.OnAuthRequired(tuple.Item2);
-            }, state);
+            var capturedCallback = callback;
+            var capturedContract = contract;
+            dispatcher.Post(() => capturedCallback.OnAuthRequired(capturedContract));
+            return;
         }
-        else
-        {
-            callback.OnAuthRequired(contract);
-        }
+
+        callback.OnAuthRequired(contract);
     }
 
     private void NotifyAuthRequiredFromStoredChallenge()
@@ -2465,19 +2469,17 @@ public sealed class NostrRelaySession : INostrRelaySession
             _authSucceeded = false;
         }
 
-        if (_callbackContext is not null)
+        var dispatcher = _callbackDispatcher;
+        if (dispatcher is not null)
         {
-            var state = Tuple.Create(callback, relayUrl, message);
-            _callbackContext.Post(static s =>
-            {
-                var tuple = (Tuple<INostrAuthCallback, string, string>)s!;
-                tuple.Item1.OnAuthFailed(tuple.Item2, tuple.Item3);
-            }, state);
+            var capturedCallback = callback;
+            var capturedRelayUrl = relayUrl;
+            var capturedMessage = message;
+            dispatcher.Post(() => capturedCallback.OnAuthFailed(capturedRelayUrl, capturedMessage));
+            return;
         }
-        else
-        {
-            callback.OnAuthFailed(relayUrl, message);
-        }
+
+        callback.OnAuthFailed(relayUrl, message);
     }
 
     private void NotifyAuthSucceeded()
@@ -2511,19 +2513,16 @@ public sealed class NostrRelaySession : INostrRelaySession
             return;
         }
 
-        if (_callbackContext is not null)
+        var dispatcher = _callbackDispatcher;
+        if (dispatcher is not null)
         {
-            var state = Tuple.Create(callback, relayUrl);
-            _callbackContext.Post(static s =>
-            {
-                var tuple = (Tuple<INostrAuthCallback, string>)s!;
-                tuple.Item1.OnAuthSucceeded(tuple.Item2);
-            }, state);
+            var capturedCallback = callback;
+            var capturedRelayUrl = relayUrl;
+            dispatcher.Post(() => capturedCallback.OnAuthSucceeded(capturedRelayUrl));
+            return;
         }
-        else
-        {
-            callback.OnAuthSucceeded(relayUrl);
-        }
+
+        callback.OnAuthSucceeded(relayUrl);
     }
 
     private static AuthSignal ParseAuthSignal(string? reason)
@@ -2764,6 +2763,7 @@ internal readonly struct SubscriptionConfiguration
     public QueueOverflowStrategy OverflowStrategy { get; }
 }
 
+[SupportedOSPlatform("windows")]
 [ComVisible(true)]
 [Guid("175bd625-18d9-42bd-b75a-0642abf029b4")]
 [ClassInterface(ClassInterfaceType.None)]
@@ -2772,7 +2772,7 @@ public sealed class NostrSubscription : INostrSubscription
 
     private readonly NostrRelaySession _session;
     private readonly string _relayUrl;
-    private readonly SynchronizationContext? _callbackContext;
+    private readonly ComCallbackDispatcher? _dispatcher;
     private readonly INostrEventCallback _callback;
     private readonly bool _keepAlive;
     private readonly double? _autoRequeryWindowSeconds;
@@ -2797,14 +2797,14 @@ public sealed class NostrSubscription : INostrSubscription
         NostrFilter[] filters,
         IReadOnlyList<NostrFilterDto> filterDtos,
         INostrEventCallback callback,
-        SynchronizationContext? callbackContext,
+        ComCallbackDispatcher? callbackDispatcher,
         SubscriptionConfiguration configuration)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _relayUrl = relayUrl ?? throw new ArgumentNullException(nameof(relayUrl));
         Id = id ?? throw new ArgumentNullException(nameof(id));
         _callback = callback ?? throw new ArgumentNullException(nameof(callback));
-        _callbackContext = callbackContext;
+        _dispatcher = callbackDispatcher;
         _keepAlive = configuration.KeepAlive;
         _autoRequeryWindowSeconds = configuration.AutoRequeryWindowSeconds;
         _maxQueueLength = configuration.MaxQueueLength ?? 0;
@@ -3120,9 +3120,10 @@ public sealed class NostrSubscription : INostrSubscription
 
         if (schedule)
         {
-            if (_callbackContext is not null)
+            var dispatcher = _dispatcher;
+            if (dispatcher is not null)
             {
-                _callbackContext.Post(static state => ((NostrSubscription)state!).DrainCallbacks(), this);
+                dispatcher.Post(DrainCallbacks);
             }
             else
             {

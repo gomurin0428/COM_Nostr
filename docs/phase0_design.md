@@ -68,7 +68,7 @@
 - 例外発生時は HRESULT と併せてログし、デバッグ容易性を確保する。
 
 ## 8. 今後の実装タスクと依存関係
-1. `ComCallbackDispatcher` と STA ワーカーの実装 (フェーズ1)。
+1. `ComCallbackDispatcher` と STA ワーカーの実装 (完了: 2025-09-21)。
 2. `IWebSocketConnection` 抽象化と `ClientWebSocketConnection` 実装。
 3. `NostrProtocolSerializer` によるメッセージ変換ロジックと単体テスト。
 4. `RelaySession` の状態遷移実装、および NIP-11 取得 (`HttpClient` + JSON 解析)。

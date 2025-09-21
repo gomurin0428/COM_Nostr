@@ -49,12 +49,12 @@
 
 ## インターフェイス詳細
 ### INostrClient
-- `void Initialize([in] ClientOptions options)` : WebSocket 実装やデフォルトタイムアウトを一括設定。呼び出しスレッドの `SynchronizationContext` を捕捉し、後続コールバックのディスパッチ先として利用する。同じインスタンスで二度以上呼び出すと `E_NOSTR_ALREADY_INITIALIZED` を返す。
+- `void Initialize([in] ClientOptions options)` : WebSocket 実装やデフォルトタイムアウトを一括設定。呼び出しスレッドの `SynchronizationContext` を捕捉し、`ComCallbackDispatcher` に保存する。同期コンテキストが無い場合は内部 STA ワーカースレッドを立ち上げ、以後すべての COM コールバックをそこへ直列ディスパッチする。同じインスタンスで二度以上呼び出すと `E_NOSTR_ALREADY_INITIALIZED` を返す。
 - `void SetSigner([in] INostrSigner* signer)` : Schnorr 署名実装を注入。署名者が未設定で `PublishEvent`/`RespondAuth` を呼ぶと `E_NOSTR_SIGNER_MISSING` を返す。
 - `INostrRelaySession* ConnectRelay([in] RelayDescriptor descriptor, [in] INostrAuthCallback* authCallback)` : NIP-11 メタ取得→WebSocket 接続→`Connected` 状態遷移。`authCallback` は `ComCallbackDispatcher` 経由で発火。
 - `void DisconnectRelay([in] BSTR relayUrl)` : graceful に CLOSE→CLOSED を待機。強制切断時は `State=Faulted`。
 - `VARIANT_BOOL HasRelay([in] BSTR relayUrl)` : セッション存在確認。
-- `INostrSubscription* OpenSubscription([in] BSTR relayUrl, [in] SAFEARRAY(NostrFilter) filters, [in] INostrEventCallback* callback, [in] SubscriptionOptions options)` : REQ を発行し購読ハンドルを返す。`Id` は 64 文字 hex で自動生成し、コールバックは捕捉済み `SynchronizationContext` があればそちらへ、存在しない場合は内部キュー経由で順番にディスパッチする。`SubscriptionOptions.KeepAlive` が false のときは初回 `EOSE` 後に `CLOSE` を自動送信し、`AutoRequeryWindowSeconds` が正の値なら `UpdateFilters` 時に `since` を補正する。`MaxQueueLength` を設定するとキュー上限に達した際の挙動を `QueueOverflowStrategy` で制御でき、既定 (`DropOldest`) では最古のイベントを破棄し、`Throw` を選ぶと購読を `CLOSED` に遷移させる。
+- `INostrSubscription* OpenSubscription([in] BSTR relayUrl, [in] SAFEARRAY(NostrFilter) filters, [in] INostrEventCallback* callback, [in] SubscriptionOptions options)` : REQ を発行し購読ハンドルを返す。`Id` は 64 文字 hex で自動生成し、コールバックは `ComCallbackDispatcher` を通じて直列ディスパッチされる。同期コンテキストを捕捉できていればそのコンテキスト上で、捕捉できない場合は内部 STA ワーカー上で実行する。`SubscriptionOptions.KeepAlive` が false のときは初回 `EOSE` 後に `CLOSE` を自動送信し、`AutoRequeryWindowSeconds` が正の値なら `UpdateFilters` 時に `since` を補正する。`MaxQueueLength` を設定するとキュー上限に達した際の挙動を `QueueOverflowStrategy` で制御でき、既定 (`DropOldest`) では最古のイベントを破棄し、`Throw` を選ぶと購読を `CLOSED` に遷移させる。
 - `void PublishEvent([in] BSTR relayUrl, [in] NostrEvent eventPayload)` : EVENT 送信。Signature が空なら `INostrSigner` による署名＋Id 計算を内部実装し、リレーの `OK` 応答を `ClientOptions.ReceiveTimeout` (未指定時は 10 秒) まで待機して `LastOkResult` に反映。`OK.success=false` や `NOTICE` は `INostrEventCallback.OnNotice` に転送し、timeout は `HRESULT_FROM_WIN32(ERROR_TIMEOUT)`、拒否は `E_NOSTR_WEBSOCKET_ERROR` を返す。
 | `E_NOSTR_OBJECT_DISPOSED` | `0x88990004` | `Dispose` 呼び出し後に API を利用した場合。 |
 | `E_NOSTR_ALREADY_INITIALIZED` | `0x88990005` | 同一インスタンスで `Initialize` を二度以上実行した場合。 |
