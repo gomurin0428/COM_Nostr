@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -174,6 +175,49 @@ internal sealed class NostrJsonSerializer
         return new NostrNoticeMessage(message);
     }
 
+    public NostrAuthChallengeMessage DeserializeAuthChallenge(ReadOnlySpan<byte> json)
+    {
+        using var document = JsonDocument.Parse(json.ToArray());
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Array)
+        {
+            throw new FormatException("AUTH message must be a JSON array.");
+        }
+
+        if (root.GetArrayLength() < 2)
+        {
+            throw new FormatException("AUTH message is missing the challenge payload.");
+        }
+
+        var messageType = root[0].GetString();
+        if (!string.Equals(messageType, "AUTH", StringComparison.Ordinal))
+        {
+            throw new FormatException("JSON message is not an AUTH type.");
+        }
+
+        var payload = root[1];
+        string challenge;
+        double? expiresAt = null;
+
+        switch (payload.ValueKind)
+        {
+            case JsonValueKind.String:
+                challenge = payload.GetString() ?? string.Empty;
+                break;
+            case JsonValueKind.Object:
+                challenge = ReadChallengeObject(payload, out expiresAt);
+                break;
+            default:
+                throw new FormatException("AUTH challenge payload must be a string or object.");
+        }
+
+        if (string.IsNullOrWhiteSpace(challenge))
+        {
+            throw new FormatException("AUTH challenge must not be empty.");
+        }
+
+        return new NostrAuthChallengeMessage(challenge, expiresAt);
+    }
     public NostrEndOfStoredEventsMessage DeserializeEndOfStoredEvents(ReadOnlySpan<byte> json)
     {
         using var document = JsonDocument.Parse(json.ToArray());
@@ -320,6 +364,86 @@ internal sealed class NostrJsonSerializer
         writer.WriteEndArray();
     }
 
+    private static string ReadChallengeObject(JsonElement element, out double? expiresAt)
+    {
+        expiresAt = ReadOptionalExpiration(element);
+
+        if (element.TryGetProperty("challenge", out var challengeProperty) && challengeProperty.ValueKind == JsonValueKind.String)
+        {
+            return challengeProperty.GetString() ?? string.Empty;
+        }
+
+        if (element.TryGetProperty("message", out var messageProperty) && messageProperty.ValueKind == JsonValueKind.String)
+        {
+            return messageProperty.GetString() ?? string.Empty;
+        }
+
+        if (element.TryGetProperty("value", out var valueProperty) && valueProperty.ValueKind == JsonValueKind.String)
+        {
+            return valueProperty.GetString() ?? string.Empty;
+        }
+
+        throw new FormatException("AUTH challenge payload object must contain a 'challenge' field.");
+    }
+
+    private static double? ReadOptionalExpiration(JsonElement element)
+    {
+        var candidateNames = new[] { "expires_at", "expiration", "expiresAt" };
+        foreach (var name in candidateNames)
+        {
+            if (element.TryGetProperty(name, out var property))
+            {
+                var value = ParseUnixTimestampValue(property);
+                if (value.HasValue)
+                {
+                    return value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static double? ParseUnixTimestampValue(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Number)
+        {
+            if (element.TryGetInt64(out var longValue))
+            {
+                return longValue;
+            }
+
+            if (element.TryGetDouble(out var doubleValue))
+            {
+                if (double.IsNaN(doubleValue) || double.IsInfinity(doubleValue))
+                {
+                    return null;
+                }
+
+                return doubleValue;
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.String)
+        {
+            var text = element.GetString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var numeric) && !double.IsNaN(numeric) && !double.IsInfinity(numeric))
+            {
+                return numeric;
+            }
+
+            if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsed))
+            {
+                return parsed.ToUnixTimeSeconds();
+            }
+        }
+
+        return null;
+    }
     private static NostrEventDto ReadEventObject(JsonElement element)
     {
         if (element.ValueKind != JsonValueKind.Object)
@@ -444,5 +568,25 @@ internal sealed class NostrJsonSerializer
         }
 
         throw new FormatException($"EVENT payload property '{propertyName}' is not a valid integer.");
+    }
+
+    public byte[] SerializeAuth(NostrEventDto authEvent)
+    {
+        if (authEvent is null)
+        {
+            throw new ArgumentNullException(nameof(authEvent));
+        }
+
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer, WriterOptions))
+        {
+            writer.WriteStartArray();
+            writer.WriteStringValue("AUTH");
+            WriteEventObject(writer, authEvent);
+            writer.WriteEndArray();
+            writer.Flush();
+        }
+
+        return buffer.WrittenSpan.ToArray();
     }
 }

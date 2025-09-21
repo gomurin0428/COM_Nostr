@@ -11,16 +11,16 @@
 | `COM_Nostr/Contracts/DataContracts.cs` | COM で公開するイベント、フィルタ、オプション等の DTO クラス群を定義。 |
 | `COM_Nostr/Contracts/Enums.cs` | リレー状態とサブスクリプション状態を表す COM 列挙体を提供。 |
 | `COM_Nostr/Contracts/Interfaces.cs` | INostrClient など COM インターフェイス群のメソッド／プロパティ契約を宣言。 |
-| `COM_Nostr/Contracts/NostrClient.cs` | `Initialize` / リレー接続に加え、REQ/EOSE/CLOSED 管理と SUB/PUB ワークフローを持ち、EVENT 送信時の署名・ACK 待機・HRESULT マッピングを実装。 |
+| `COM_Nostr/Contracts/NostrClient.cs` | `Initialize` やリレー/サブスクリプション管理に加え、NIP-42 の challenge 追跡と `RespondAuth` での kind:22242 EVENT 署名・ACK 処理を実装。 |
 | `COM_Nostr/Contracts/NostrSigner.cs` | 環境変数の秘密鍵で Schnorr 署名とイベントID計算を行う COM 実装クラス。 |
 | `COM_Nostr/Internal/ClientRuntimeOptions.cs` | Initialize で正規化したタイムアウトや User-Agent を保持する内部設定モデル。 |
 | `COM_Nostr/Internal/ClientWebSocketConnection.cs` | `System.Net.WebSockets.ClientWebSocket` を `IWebSocketConnection` にラップする実装。 |
 | `COM_Nostr/Internal/IWebSocketConnection.cs` | WebSocket 送受信を抽象化する内部インターフェイス。 |
 | `COM_Nostr/Internal/IWebSocketFactory.cs` | 外部差し替え用ファクトリが実装すべき公開インターフェイス。 |
 | `COM_Nostr/Internal/NostrClientResources.cs` | HttpClient/WebSocket/シリアライザのファクトリを束ねたリソースホルダー。 |
-| `COM_Nostr/Internal/NostrJsonSerializer.cs` | EVENT/REQ/OK/NOTICE/EOSE/CLOSED の JSON 変換ロジックを提供。 |
+| `COM_Nostr/Internal/NostrJsonSerializer.cs` | EVENT/REQ/OK/NOTICE/EOSE/CLOSED/AUTH の JSON 変換ロジックと AUTH challenge デシリアライズを提供。 |
 | `COM_Nostr/Internal/NostrFilterConverter.cs` | COM から渡された NostrFilter/NostrTagQuery を内部 DTO に正規化するユーティリティ。 |
-| `COM_Nostr/Internal/NostrProtocolModels.cs` | プロトコルメッセージの内部 DTO (EVENT/REQ/OK/NOTICE/EOSE/CLOSED) を定義する補助クラス群。 |
+| `COM_Nostr/Internal/NostrProtocolModels.cs` | EVENT/REQ/OK/NOTICE/EOSE/CLOSED/AUTH 向け内部 DTO (AuthChallenge など) を定義する補助クラス群。 |
 | `COM_Nostr/Internal/WebSocketFactoryResolver.cs` | ProgID 解析とファクトリ生成・検証を担当するユーティリティ。 |
 | `COM_Nostr/Internal/BackoffPolicy.cs` | 再接続時の指数バックオフ遅延を計算する内部ユーティリティ。 |
 | `COM_Nostr/Internal/ComErrorCodes.cs` | 公開 API で使用するカスタム HRESULT 定数を定義。 |
@@ -35,6 +35,7 @@
 | `UnitTest_COM_Nostr/NostrRelaySessionTests.cs` | docker で strfry リレーを起動し RelaySession の接続と NIP-11 取得を検証する MSTest。 |
 | `UnitTest_COM_Nostr/NostrSubscriptionTests.cs` | docker strfry と手動 EVENT 投入で購読の EOSE/イベント受信と KeepAlive 動作を検証する MSTest。 |
 | `UnitTest_COM_Nostr/NostrPublishEventTests.cs` | docker strfry を用いた EVENT 送信の署名成功ケースと署名不正時の NOTICE/COMException を検証する MSTest。 |
+| `UnitTest_COM_Nostr/NostrAuthTests.cs` | モックセッションで AUTH メッセージや `auth-required` プレフィックスの通知連携を検証する MSTest。 |
 | `UnitTest_COM_Nostr/StrfryRelayHost.cs` | テストごとに strfry コンテナを起動・停止するための補助ユーティリティ。 |
 | `UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj` | テストプロジェクトのターゲットフレームワークや参照設定を定義。 |
 | `ImplementationPlan.md` | COM_Nostr 実装フェーズとテスト戦略をまとめた計画ドキュメント。 |

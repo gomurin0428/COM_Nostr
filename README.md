@@ -137,9 +137,10 @@
 - イベントは内部キューで順序を保持してから `INostrEventCallback` に通知され、`MaxQueueLength` を超えた場合は最古のイベントから破棄する。
 
 ## 認証 (NIP-42)
-- リレーが `auth-required` で購読/投稿を拒否した場合、`INostrAuthCallback.OnAuthRequired` に `AuthChallenge` を引き渡す。
-- クライアントは challenge と relay URL を kind:22242 EVENT に変換し `RespondAuth` を呼ぶ。
-- 成功時は `OK` メッセージから結果を解析し `OnAuthSucceeded` を通知。失敗時は `OnAuthFailed`。
+- リレーからの `AUTH` メッセージを自動で解析し、最後に受け取った challenge をキャッシュした上で `INostrAuthCallback.OnAuthRequired` に `AuthChallenge` (UNIX 秒での `ExpiresAt` 含む) を通知する。
+- `auth-required`/`auth-failed`/`restricted` などのプレフィックスを持つ `OK`/`NOTICE`/`CLOSED` を受信すると、状況に応じて `OnAuthRequired` や `OnAuthFailed` をフォローアップで呼び出す。
+- `RespondAuth` は保存済み challenge とリレー URL をもとに `relay` / `challenge` タグを補完し、未署名の場合は `INostrSigner` を用いて kind:22242 EVENT を署名して送信する。challenge が未設定でタグも空の場合は `COMException(E_INVALIDARG)` をスローする。
+- `AUTH` 応答の `OK` が success=true で返ると `OnAuthSucceeded` を通知し、再利用されないよう challenge キャッシュをクリアする。失敗時はメッセージを抽出して `OnAuthFailed` に連携する。
 
 ## リレー接続管理
 - `ConnectRelay` は NIP-11 のメタ情報 (`supported_nips`, `limitation`, `auth` など) をキャッシュし、`RelayDescriptor.Metadata` として公開。

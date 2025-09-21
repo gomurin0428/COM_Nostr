@@ -466,7 +466,149 @@ public sealed class NostrClient : INostrClient
 
     public void RespondAuth(string relayUrl, NostrEvent authEvent)
     {
-        throw new NotImplementedException();
+        var resources = EnsureResources();
+
+        if (authEvent is null)
+        {
+            throw new COMException("Auth event must not be null.", EPointer);
+        }
+
+        var session = GetSessionOrThrow(relayUrl);
+        var signer = EnsureSigner();
+
+        NostrEvent normalizedEvent;
+        NostrEventDraft draft;
+
+        try
+        {
+            normalizedEvent = NormalizeEvent(authEvent);
+            draft = CreateDraftForSigning(normalizedEvent);
+
+            if (normalizedEvent.Kind != 22242)
+            {
+                throw new ArgumentException("Authentication events must use kind 22242.", nameof(NostrEvent.Kind));
+            }
+
+            string? storedChallenge = null;
+            if (session.TryGetAuthChallenge(out var challenge, out var _))
+            {
+                storedChallenge = challenge;
+            }
+
+            EnsureAuthTags(normalizedEvent, session.Url, storedChallenge);
+            draft.Tags = CloneEventTags(normalizedEvent.Tags);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new COMException(ex.Message, EInvalidarg);
+        }
+        catch (Exception ex)
+        {
+            throw new COMException("Failed to prepare authentication event.", ex);
+        }
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(normalizedEvent.PublicKey))
+            {
+                normalizedEvent.PublicKey = NormalizeHex(signer.GetPublicKey());
+            }
+            else
+            {
+                normalizedEvent.PublicKey = NormalizeHex(normalizedEvent.PublicKey);
+            }
+
+            draft.PublicKey = normalizedEvent.PublicKey;
+
+            if (string.IsNullOrWhiteSpace(normalizedEvent.Signature))
+            {
+                normalizedEvent.Signature = NormalizeHex(signer.Sign(draft));
+            }
+            else
+            {
+                normalizedEvent.Signature = NormalizeHex(normalizedEvent.Signature);
+            }
+
+            normalizedEvent.Id = NormalizeHex(NostrSigner.ComputeEventId(draft, normalizedEvent.PublicKey));
+        }
+        catch (COMException)
+        {
+            throw;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new COMException(ex.Message, EInvalidarg);
+        }
+        catch (Exception ex)
+        {
+            throw new COMException("Failed to sign authentication event.", ex);
+        }
+
+        CopyEvent(normalizedEvent, authEvent);
+
+        IReadOnlyList<IReadOnlyList<string>> tagsForDto;
+        long createdAtSeconds;
+
+        try
+        {
+            tagsForDto = ConvertTagsToDto(normalizedEvent.Tags);
+            createdAtSeconds = ToUnixSeconds(normalizedEvent.CreatedAt);
+        }
+        catch (Exception ex)
+        {
+            throw new COMException("Failed to serialize authentication event.", ex);
+        }
+
+        var eventDto = new NostrEventDto(
+            normalizedEvent.Id,
+            normalizedEvent.PublicKey,
+            createdAtSeconds,
+            normalizedEvent.Kind,
+            tagsForDto,
+            normalizedEvent.Content,
+            normalizedEvent.Signature);
+
+        try
+        {
+            var ok = session.Authenticate(eventDto, DeterminePublishAckTimeout(resources.Options), PublishRetryAttempts);
+
+            if (!ok.Success)
+            {
+                var message = string.IsNullOrEmpty(ok.Message)
+                    ? $"Relay '{relayUrl}' rejected authentication event."
+                    : $"Relay '{relayUrl}' rejected authentication event: {ok.Message}";
+
+                throw new COMException(message, ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+            }
+        }
+        catch (TimeoutException)
+        {
+            throw new COMException($"Authentication on '{relayUrl}' timed out.", ETimeout);
+        }
+        catch (OperationCanceledException)
+        {
+            throw new COMException($"Authentication on '{relayUrl}' was canceled.", ETimeout);
+        }
+        catch (WebSocketException ex)
+        {
+            throw new COMException($"Failed to authenticate on '{relayUrl}'. {ex.Message}", ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new COMException(ex.Message, EInvalidarg);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new COMException(ex.Message, ex);
+        }
+        catch (COMException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new COMException($"Failed to authenticate on '{relayUrl}'.", ex);
+        }
     }
 
     public void RefreshRelayInfo(string relayUrl)
@@ -694,6 +836,102 @@ public sealed class NostrClient : INostrClient
         };
     }
 
+    private static void EnsureAuthTags(NostrEvent normalizedEvent, string relayUrl, string? expectedChallenge)
+    {
+        if (normalizedEvent is null)
+        {
+            throw new ArgumentNullException(nameof(normalizedEvent));
+        }
+
+        var tags = normalizedEvent.Tags ?? Array.Empty<object>();
+        var list = new List<object>(tags);
+        var hasRelay = false;
+        var hasChallenge = false;
+
+        for (var i = 0; i < list.Count; i++)
+        {
+            if (!TryGetTagLabel(list[i], out var label, out var value))
+            {
+                continue;
+            }
+
+            if (string.Equals(label, "relay", StringComparison.OrdinalIgnoreCase))
+            {
+                var normalizedRelay = NormalizeRelayTagValue(value);
+                if (!string.Equals(normalizedRelay, relayUrl, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException($"AUTH relay tag must match '{relayUrl}'.", nameof(NostrEvent.Tags));
+                }
+
+                hasRelay = true;
+            }
+            else if (string.Equals(label, "challenge", StringComparison.OrdinalIgnoreCase))
+            {
+                hasChallenge = true;
+                if (!string.IsNullOrEmpty(expectedChallenge) && !string.Equals(value, expectedChallenge, StringComparison.Ordinal))
+                {
+                    throw new ArgumentException("AUTH challenge tag does not match the relay challenge.", nameof(NostrEvent.Tags));
+                }
+            }
+        }
+
+        if (!hasRelay)
+        {
+            list.Add(new object[] { "relay", relayUrl });
+        }
+
+        if (!hasChallenge)
+        {
+            if (string.IsNullOrEmpty(expectedChallenge))
+            {
+                throw new ArgumentException("Challenge tag is required for authentication.", nameof(NostrEvent.Tags));
+            }
+
+            list.Add(new object[] { "challenge", expectedChallenge });
+        }
+
+        normalizedEvent.Tags = list.ToArray();
+    }
+
+    private static bool TryGetTagLabel(object tag, out string label, out string? value)
+    {
+        label = string.Empty;
+        value = null;
+
+        if (tag is string[] stringArray && stringArray.Length > 0)
+        {
+            label = stringArray[0] ?? string.Empty;
+            value = stringArray.Length > 1 ? stringArray[1] : null;
+            return true;
+        }
+
+        if (tag is object[] objectArray && objectArray.Length > 0)
+        {
+            label = objectArray[0]?.ToString() ?? string.Empty;
+            value = objectArray.Length > 1 ? objectArray[1]?.ToString() : null;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string NormalizeRelayTagValue(string? relayTag)
+    {
+        if (string.IsNullOrWhiteSpace(relayTag))
+        {
+            throw new ArgumentException("Relay tag value must not be empty.", nameof(NostrEvent.Tags));
+        }
+
+        try
+        {
+            var uri = RelayUriUtilities.ParseWebSocketUri(relayTag);
+            return RelayUriUtilities.ToCanonicalString(uri);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new ArgumentException("Relay tag value is not a valid Nostr relay URL.", nameof(NostrEvent.Tags), ex);
+        }
+    }
     private static double NormalizeCreatedAt(double value)
     {
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0)
@@ -1052,6 +1290,11 @@ public sealed class NostrRelaySession : INostrRelaySession
     private readonly Dictionary<string, NostrSubscription> _subscriptions = new(StringComparer.Ordinal);
     private readonly object _pendingPublishLock = new();
     private readonly Dictionary<string, TaskCompletionSource<NostrOkMessage>> _pendingPublishes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _authLock = new();
+
+    private string? _lastAuthChallenge;
+    private double? _lastAuthChallengeExpiresAt;
+    private bool _authSucceeded;
 
     private RelayDescriptor _descriptor;
     private RelaySessionState _state = RelaySessionState.Disconnected;
@@ -1214,6 +1457,16 @@ public sealed class NostrRelaySession : INostrRelaySession
         lock (_stateLock)
         {
             _authCallback = callback;
+        }
+    }
+
+    internal bool TryGetAuthChallenge(out string? challenge, out double? expiresAt)
+    {
+        lock (_authLock)
+        {
+            challenge = _lastAuthChallenge;
+            expiresAt = _lastAuthChallengeExpiresAt;
+            return !string.IsNullOrEmpty(challenge);
         }
     }
 
@@ -1438,6 +1691,13 @@ public sealed class NostrRelaySession : INostrRelaySession
             {
                 BroadcastNotice(ok.Message);
             }
+            HandleAuthSignalFromOk(ok);
+
+        }
+        else if (string.Equals(messageType, "AUTH", StringComparison.Ordinal))
+        {
+            var challenge = _serializer.DeserializeAuthChallenge(payload);
+            HandleAuthChallenge(challenge);
         }
         else if (string.Equals(messageType, "EVENT", StringComparison.Ordinal))
         {
@@ -1468,11 +1728,14 @@ public sealed class NostrRelaySession : INostrRelaySession
             {
                 subscription.HandleClosed(closed.Reason);
             }
+
+            HandleAuthSignalFromReason(closed.Reason);
         }
         else if (string.Equals(messageType, "NOTICE", StringComparison.Ordinal))
         {
             var notice = _serializer.DeserializeNotice(payload);
             BroadcastNotice(notice.Message);
+            HandleAuthSignalFromReason(notice.Message);
         }
     }
 
@@ -1626,7 +1889,33 @@ public sealed class NostrRelaySession : INostrRelaySession
         }
 
         var payload = _serializer.SerializeEvent(eventDto);
-        var completion = RegisterPublishAck(eventDto.Id);
+        return SendWithAck(payload, eventDto.Id, ackTimeout, maxAttempts);
+    }
+
+    internal NostrOkMessage Authenticate(NostrEventDto eventDto, TimeSpan ackTimeout, int maxAttempts)
+    {
+        if (eventDto is null)
+        {
+            throw new ArgumentNullException(nameof(eventDto));
+        }
+
+        if (maxAttempts <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxAttempts));
+        }
+
+        var payload = _serializer.SerializeAuth(eventDto);
+        return SendWithAck(payload, eventDto.Id, ackTimeout, maxAttempts);
+    }
+
+    private NostrOkMessage SendWithAck(ReadOnlyMemory<byte> payload, string eventId, TimeSpan ackTimeout, int maxAttempts)
+    {
+        if (string.IsNullOrWhiteSpace(eventId))
+        {
+            throw new ArgumentException("Event identifier must not be null or whitespace.", nameof(eventId));
+        }
+
+        var completion = RegisterPublishAck(eventId);
         var backoff = new BackoffPolicy(TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(2));
         var attempts = 0;
 
@@ -1670,15 +1959,299 @@ public sealed class NostrRelaySession : INostrRelaySession
                     Task.Delay(backoff.GetNextDelay()).GetAwaiter().GetResult();
                     continue;
                 }
-
             }
         }
         finally
         {
-            RemovePublishAck(eventDto.Id, completion);
+            RemovePublishAck(eventId, completion);
+        }
+    }
+    private void HandleAuthChallenge(NostrAuthChallengeMessage challenge)
+    {
+        if (challenge is null)
+        {
+            throw new ArgumentNullException(nameof(challenge));
+        }
+
+        lock (_authLock)
+        {
+            _lastAuthChallenge = challenge.Challenge;
+            _lastAuthChallengeExpiresAt = challenge.ExpiresAtUnixSeconds;
+            _authSucceeded = false;
+        }
+
+        NotifyAuthRequired(challenge.Challenge, challenge.ExpiresAtUnixSeconds);
+    }
+    internal void ProcessAuthAck(NostrOkMessage ok)
+    {
+        HandleAuthSignalFromOk(ok);
+    }
+
+    private void HandleAuthSignalFromOk(NostrOkMessage ok)
+    {
+        if (ok is null)
+        {
+            return;
+        }
+
+        var signal = ParseAuthSignal(ok.Message);
+
+        if (ok.Success)
+        {
+            if (signal == AuthSignal.Required)
+            {
+                NotifyAuthRequiredFromStoredChallenge();
+            }
+
+            NotifyAuthSucceeded();
+            return;
+        }
+
+        switch (signal)
+        {
+            case AuthSignal.Required:
+                NotifyAuthRequiredFromStoredChallenge();
+                NotifyAuthFailed(ExtractAuthReason(ok.Message));
+                break;
+            case AuthSignal.Failed:
+            case AuthSignal.Restricted:
+                NotifyAuthFailed(ExtractAuthReason(ok.Message));
+                break;
+            default:
+                if (!string.IsNullOrWhiteSpace(ok.Message))
+                {
+                    NotifyAuthFailed(ExtractAuthReason(ok.Message));
+                }
+                break;
         }
     }
 
+    private void HandleAuthSignalFromReason(string reason)
+    {
+        var signal = ParseAuthSignal(reason);
+        switch (signal)
+        {
+            case AuthSignal.Required:
+                NotifyAuthRequiredFromStoredChallenge();
+                break;
+            case AuthSignal.Failed:
+            case AuthSignal.Restricted:
+                NotifyAuthFailed(ExtractAuthReason(reason));
+                break;
+            case AuthSignal.Succeeded:
+                NotifyAuthSucceeded();
+                break;
+        }
+    }
+
+    private void NotifyAuthRequired(string challenge, double? expiresAt)
+    {
+        string relayUrl;
+        INostrAuthCallback callback;
+        lock (_stateLock)
+        {
+            callback = _authCallback;
+            relayUrl = _descriptor.Url;
+        }
+
+        lock (_authLock)
+        {
+            _authSucceeded = false;
+        }
+
+        var contract = new AuthChallenge
+        {
+            RelayUrl = relayUrl,
+            Challenge = challenge ?? string.Empty,
+            ExpiresAt = expiresAt.HasValue ? expiresAt.Value : null
+        };
+
+        if (_callbackContext is not null)
+        {
+            var state = Tuple.Create(callback, contract);
+            _callbackContext.Post(static s =>
+            {
+                var tuple = (Tuple<INostrAuthCallback, AuthChallenge>)s!;
+                tuple.Item1.OnAuthRequired(tuple.Item2);
+            }, state);
+        }
+        else
+        {
+            callback.OnAuthRequired(contract);
+        }
+    }
+
+    private void NotifyAuthRequiredFromStoredChallenge()
+    {
+        string challenge;
+        double? expiresAt;
+        lock (_authLock)
+        {
+            challenge = _lastAuthChallenge ?? string.Empty;
+            expiresAt = _lastAuthChallengeExpiresAt;
+            _authSucceeded = false;
+        }
+
+        NotifyAuthRequired(challenge, expiresAt);
+    }
+
+    private void NotifyAuthFailed(string reason)
+    {
+        var message = ExtractAuthReason(reason);
+
+        string relayUrl;
+        INostrAuthCallback callback;
+        lock (_stateLock)
+        {
+            callback = _authCallback;
+            relayUrl = _descriptor.Url;
+        }
+
+        lock (_authLock)
+        {
+            _authSucceeded = false;
+        }
+
+        if (_callbackContext is not null)
+        {
+            var state = Tuple.Create(callback, relayUrl, message);
+            _callbackContext.Post(static s =>
+            {
+                var tuple = (Tuple<INostrAuthCallback, string, string>)s!;
+                tuple.Item1.OnAuthFailed(tuple.Item2, tuple.Item3);
+            }, state);
+        }
+        else
+        {
+            callback.OnAuthFailed(relayUrl, message);
+        }
+    }
+
+    private void NotifyAuthSucceeded()
+    {
+        INostrAuthCallback callback;
+        string relayUrl;
+        lock (_stateLock)
+        {
+            callback = _authCallback;
+            relayUrl = _descriptor.Url;
+        }
+
+        bool shouldNotify;
+        lock (_authLock)
+        {
+            if (_authSucceeded)
+            {
+                shouldNotify = false;
+            }
+            else
+            {
+                _authSucceeded = true;
+                _lastAuthChallenge = null;
+                _lastAuthChallengeExpiresAt = null;
+                shouldNotify = true;
+            }
+        }
+
+        if (!shouldNotify)
+        {
+            return;
+        }
+
+        if (_callbackContext is not null)
+        {
+            var state = Tuple.Create(callback, relayUrl);
+            _callbackContext.Post(static s =>
+            {
+                var tuple = (Tuple<INostrAuthCallback, string>)s!;
+                tuple.Item1.OnAuthSucceeded(tuple.Item2);
+            }, state);
+        }
+        else
+        {
+            callback.OnAuthSucceeded(relayUrl);
+        }
+    }
+
+    private static AuthSignal ParseAuthSignal(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return AuthSignal.None;
+        }
+
+        var trimmed = reason.Trim();
+
+        if (trimmed.StartsWith("auth-required", StringComparison.OrdinalIgnoreCase))
+        {
+            return AuthSignal.Required;
+        }
+
+        if (trimmed.StartsWith("auth-failed", StringComparison.OrdinalIgnoreCase))
+        {
+            return AuthSignal.Failed;
+        }
+
+        if (trimmed.StartsWith("restricted", StringComparison.OrdinalIgnoreCase))
+        {
+            return AuthSignal.Restricted;
+        }
+
+        if (trimmed.StartsWith("auth-success", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.StartsWith("auth-ok", StringComparison.OrdinalIgnoreCase))
+        {
+            return AuthSignal.Succeeded;
+        }
+
+        return AuthSignal.None;
+    }
+
+    private static string ExtractAuthReason(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return "Authentication failed.";
+        }
+
+        var trimmed = reason.Trim();
+        var colonIndex = trimmed.IndexOf(':');
+        if (colonIndex >= 0 && colonIndex + 1 < trimmed.Length)
+        {
+            return trimmed.Substring(colonIndex + 1).Trim();
+        }
+
+        if (trimmed.Equals("auth-required", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Authentication required.";
+        }
+
+        if (trimmed.Equals("auth-failed", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Authentication failed.";
+        }
+
+        if (trimmed.Equals("restricted", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Access restricted.";
+        }
+
+        if (trimmed.Equals("auth-success", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("auth-ok", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Authentication succeeded.";
+        }
+
+        return trimmed;
+    }
+
+    private enum AuthSignal
+    {
+        None,
+        Required,
+        Failed,
+        Restricted,
+        Succeeded
+    }
     private TaskCompletionSource<NostrOkMessage> RegisterPublishAck(string eventId)
     {
         if (string.IsNullOrWhiteSpace(eventId))
@@ -2380,6 +2953,17 @@ public sealed class NostrSubscription : INostrSubscription
         Closed
     }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

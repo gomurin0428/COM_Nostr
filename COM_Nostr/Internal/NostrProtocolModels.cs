@@ -125,6 +125,25 @@ internal sealed class NostrOkMessage
     public string Message { get; }
 }
 
+
+internal sealed class NostrAuthChallengeMessage
+{
+    public NostrAuthChallengeMessage(string challenge, double? expiresAt)
+    {
+        if (string.IsNullOrWhiteSpace(challenge))
+        {
+            throw new ArgumentException("Challenge must not be null or whitespace.", nameof(challenge));
+        }
+
+        Challenge = challenge;
+        ExpiresAtUnixSeconds = expiresAt;
+    }
+
+    public string Challenge { get; }
+
+    public double? ExpiresAtUnixSeconds { get; }
+}
+
 internal sealed class NostrNoticeMessage
 {
     public NostrNoticeMessage(string message)

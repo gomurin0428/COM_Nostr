@@ -9,3 +9,4 @@
 - ユニットテストの際は、ローカルにdockerがある前提で、strfryがインストールされている前提でそれを使って行う事。テストケースごとに異なるリレーサーバーを起動すること。docker run --rm -it -p 7777:7777 -v "${hostPath}:/app/strfry-db" --name strfry dockurr/strfryという感じのコマンドでリレーサーバーを起動できる。
 - TEXT_FILE_OVERVIEWに、git管理されている全てのテキストファイルを一覧化して、簡単な概要を記すこと。なければ作ること
 - ファイルを追加・削除・編集したら、TEXT_FILE_OVERVIEW.mdも適宜編集すること。
+- 今後も別の作業者が引っ掛かりうる落とし穴があれば、TROUBLESHOOTING.mdに記載してください。なければ作ってください。
