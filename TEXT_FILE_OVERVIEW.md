@@ -18,5 +18,6 @@
 | `UnitTest_COM_Nostr/MSTestSettings.cs` | MSTest のメソッド単位並列実行を有効化するアセンブリ属性を宣言。 |
 | `UnitTest_COM_Nostr/Test1.cs` | NostrSigner の署名生成と検証動作を確認する MSTest テストケース群。 |
 | `UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj` | テストプロジェクトのターゲットフレームワークや参照設定を定義。 |
+| `ImplementationPlan.md` | COM_Nostr 実装フェーズとテスト戦略をまとめた計画ドキュメント。 |
 
 > ※ バイナリ形式の `Nostrプロトコルの現行仕様まとめ.docx` は対象外としています。
