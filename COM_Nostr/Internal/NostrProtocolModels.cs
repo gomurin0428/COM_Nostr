@@ -139,3 +139,35 @@ internal sealed class NostrNoticeMessage
 
     public string Message { get; }
 }
+internal sealed class NostrEndOfStoredEventsMessage
+{
+    public NostrEndOfStoredEventsMessage(string subscriptionId)
+    {
+        if (string.IsNullOrWhiteSpace(subscriptionId))
+        {
+            throw new ArgumentException("Subscription identifier must not be null or whitespace.", nameof(subscriptionId));
+        }
+
+        SubscriptionId = subscriptionId;
+    }
+
+    public string SubscriptionId { get; }
+}
+
+internal sealed class NostrClosedMessage
+{
+    public NostrClosedMessage(string subscriptionId, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(subscriptionId))
+        {
+            throw new ArgumentException("Subscription identifier must not be null or whitespace.", nameof(subscriptionId));
+        }
+
+        SubscriptionId = subscriptionId;
+        Reason = reason ?? string.Empty;
+    }
+
+    public string SubscriptionId { get; }
+
+    public string Reason { get; }
+}

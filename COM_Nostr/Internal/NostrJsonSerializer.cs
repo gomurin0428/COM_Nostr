@@ -59,6 +59,26 @@ internal sealed class NostrJsonSerializer
         return buffer.WrittenSpan.ToArray();
     }
 
+    public byte[] SerializeClose(string subscriptionId)
+    {
+        if (string.IsNullOrWhiteSpace(subscriptionId))
+        {
+            throw new ArgumentException("Subscription identifier must not be null or whitespace.", nameof(subscriptionId));
+        }
+
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer, WriterOptions))
+        {
+            writer.WriteStartArray();
+            writer.WriteStringValue("CLOSE");
+            writer.WriteStringValue(subscriptionId);
+            writer.WriteEndArray();
+            writer.Flush();
+        }
+
+        return buffer.WrittenSpan.ToArray();
+    }
+
     public NostrEventMessage DeserializeEvent(ReadOnlySpan<byte> json)
     {
         using var document = JsonDocument.Parse(json.ToArray());
@@ -152,6 +172,65 @@ internal sealed class NostrJsonSerializer
         }
 
         return new NostrNoticeMessage(message);
+    }
+
+    public NostrEndOfStoredEventsMessage DeserializeEndOfStoredEvents(ReadOnlySpan<byte> json)
+    {
+        using var document = JsonDocument.Parse(json.ToArray());
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Array)
+        {
+            throw new FormatException("EOSE message must be a JSON array.");
+        }
+
+        if (root.GetArrayLength() < 2)
+        {
+            throw new FormatException("EOSE message missing subscription id.");
+        }
+
+        var messageType = root[0].GetString();
+        if (!string.Equals(messageType, "EOSE", StringComparison.Ordinal))
+        {
+            throw new FormatException("JSON message is not an EOSE type.");
+        }
+
+        var subscriptionId = root[1].GetString();
+        if (string.IsNullOrWhiteSpace(subscriptionId))
+        {
+            throw new FormatException("EOSE message must include a subscription id.");
+        }
+
+        return new NostrEndOfStoredEventsMessage(subscriptionId);
+    }
+
+    public NostrClosedMessage DeserializeClosed(ReadOnlySpan<byte> json)
+    {
+        using var document = JsonDocument.Parse(json.ToArray());
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Array)
+        {
+            throw new FormatException("CLOSED message must be a JSON array.");
+        }
+
+        if (root.GetArrayLength() < 2)
+        {
+            throw new FormatException("CLOSED message missing subscription id.");
+        }
+
+        var messageType = root[0].GetString();
+        if (!string.Equals(messageType, "CLOSED", StringComparison.Ordinal))
+        {
+            throw new FormatException("JSON message is not a CLOSED type.");
+        }
+
+        var subscriptionId = root[1].GetString();
+        if (string.IsNullOrWhiteSpace(subscriptionId))
+        {
+            throw new FormatException("CLOSED message must include a subscription id.");
+        }
+
+        var reason = root.GetArrayLength() >= 3 ? root[2].GetString() ?? string.Empty : string.Empty;
+        return new NostrClosedMessage(subscriptionId, reason);
     }
 
     private static void WriteEventObject(Utf8JsonWriter writer, NostrEventDto @event)

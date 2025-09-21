@@ -54,7 +54,7 @@
 - `INostrRelaySession* ConnectRelay([in] RelayDescriptor descriptor, [in] INostrAuthCallback* authCallback)` : NIP-11 メタ取得→WebSocket 接続→`Connected` 状態遷移。`authCallback` は `ComCallbackDispatcher` 経由で発火。
 - `void DisconnectRelay([in] BSTR relayUrl)` : graceful に CLOSE→CLOSED を待機。強制切断時は `State=Faulted`。
 - `VARIANT_BOOL HasRelay([in] BSTR relayUrl)` : セッション存在確認。
-- `INostrSubscription* OpenSubscription([in] BSTR relayUrl, [in] SAFEARRAY(NostrFilter) filters, [in] INostrEventCallback* callback, [in] SubscriptionOptions options)` : REQ を発行し購読ハンドルを返す。`Id` は 64 文字 hex で自動生成し、コールバックは捕捉済み `SynchronizationContext` または内部 STA スレッド上で順次実行する。
+- `INostrSubscription* OpenSubscription([in] BSTR relayUrl, [in] SAFEARRAY(NostrFilter) filters, [in] INostrEventCallback* callback, [in] SubscriptionOptions options)` : REQ を発行し購読ハンドルを返す。`Id` は 64 文字 hex で自動生成し、コールバックは捕捉済み `SynchronizationContext` があればそちらへ、存在しない場合は内部キュー経由で順番にディスパッチする。`SubscriptionOptions.KeepAlive` が false のときは初回 `EOSE` 後に `CLOSE` を自動送信し、`AutoRequeryWindowSeconds` が正の値なら `UpdateFilters` 時に `since` を補正する。`MaxQueueLength` を設定するとキュー上限に達した古いイベントから破棄される。
 - `void PublishEvent([in] BSTR relayUrl, [in] NostrEvent eventPayload)` : EVENT 送信。Signature が空なら `INostrSigner` による署名＋Id 計算を内部実装し OK/NOTICE の応答を `LastOkResult` に反映。
 - `void RespondAuth([in] BSTR relayUrl, [in] NostrEvent authEvent)` : kind:22242 イベントを元に AUTH メッセージを送信。
 - `void RefreshRelayInfo([in] BSTR relayUrl)` : NIP-11 に従うメタ情報更新をトリガー。
@@ -128,6 +128,13 @@
 2. リレーからの `EVENT` は `OnEvent` で逐次通知。
 3. 蓄積分の送信完了時に `EOSE` を検知して `Status=Active` へ遷移。
 4. サブスクリプション終了は `Close()` または `CLOSE`/`CLOSED` で管理。
+
+### INostrSubscription
+- `Id` は購読開始時に生成される 64 文字の hex。COM 呼び出し側から読み取り可能。
+- `Status` は `Pending` (REQ 送信直後) → `Active` (EOSE 受信後) → `Draining` (`Close` 実行中) → `Closed` へ遷移する。
+- `UpdateFilters` はフィルタ配列を正規化して再度 REQ を送信する。`AutoRequeryWindowSeconds` が正の場合、直近イベント時刻から逆算した `since` を補正して取りこぼしを抑制する。
+- `Close()` は `CLOSE` メッセージを送信し、リレーの `CLOSED` 応答で `Closed` 状態へ遷移する。
+- イベントは内部キューで順序を保持してから `INostrEventCallback` に通知され、`MaxQueueLength` を超えた場合は最古のイベントから破棄する。
 
 ## 認証 (NIP-42)
 - リレーが `auth-required` で購読/投稿を拒否した場合、`INostrAuthCallback.OnAuthRequired` に `AuthChallenge` を引き渡す。
