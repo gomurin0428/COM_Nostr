@@ -81,6 +81,13 @@
 ### INostrSigner
 - `BSTR Sign([in] NostrEventDraft draft)` : `Id` 計算前のドラフトから 64 バイト hex 署名を返す。
 - `BSTR GetPublicKey()` : 現在の公開鍵を返却 (リレー側の権限判定用)。
+#### 既定実装 (COM_Nostr.NostrSigner)
+- ProgID: `COM_Nostr.NostrSigner`。`INostrSigner` を実装する COM クラスです。
+- 既定コンストラクタは環境変数 `NOSTR_PRIVATE_KEY` (64 桁 hex) の秘密鍵を読み込みます。未設定の場合は `InvalidOperationException` を送出します。
+- `Sign` は `draft.PublicKey` をサイン済み公開鍵で上書きし、異なる鍵が指定されている場合は例外を返します。
+- 署名対象は `[0, pubkey, created_at, kind, tags, content]` を UTF-8 JSON でシリアライズした 32 バイトハッシュ (NIP-01) です。
+- 戻り値は 64 バイト (128 桁) の BIP-340 Schnorr 署名 (hex)。返却値を EVENT の `sig` に設定し、同じ計算で得られる Id を EVENT の `id` に設定してください。
+
 
 ## イベント送信フロー
 1. `NostrEventDraft` を組み立て (`CreatedAt`, `Kind`, `Tags`, `Content`)。
