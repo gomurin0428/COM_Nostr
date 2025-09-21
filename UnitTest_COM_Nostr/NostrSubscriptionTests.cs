@@ -59,6 +59,47 @@ public sealed class NostrSubscriptionTests
     }
 
     [TestMethod]
+    public async Task OpenSubscription_NoSynchronizationContext_DispatchesCallbacks()
+    {
+        await using var host = await StrfryRelayHost.StartAsync().ConfigureAwait(false);
+
+        await Task.Run(async () =>
+        {
+            Assert.IsNull(SynchronizationContext.Current);
+
+            var client = new NostrClient();
+            client.Initialize(null!);
+
+            var session = client.ConnectRelay(new RelayDescriptor
+            {
+                Url = host.RelayWebSocketUrl,
+                ReadEnabled = true,
+                WriteEnabled = true
+            }, new NullAuthCallback());
+            Assert.AreEqual(RelaySessionState.Connected, session.State);
+
+            var callback = new RecordingEventCallback();
+            var subscription = client.OpenSubscription(
+                host.RelayWebSocketUrl,
+                new[] { new NostrFilter { Kinds = new[] { 1 } } },
+                callback,
+                new SubscriptionOptions { KeepAlive = true });
+
+            await callback.WaitForEoseAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            Assert.AreEqual(SubscriptionStatus.Active, subscription.Status);
+
+            subscription.Close();
+            var reason = await callback.WaitForClosedAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            Assert.AreEqual("Subscription closed by client.", reason);
+            Assert.AreEqual(SubscriptionStatus.Closed, subscription.Status);
+
+            client.DisconnectRelay(host.RelayWebSocketUrl);
+            client.Dispose();
+        }).ConfigureAwait(false);
+    }
+
+
+    [TestMethod]
     public async Task OpenSubscription_KeepAliveFalseDrainsAfterEose()
     {
         await using var host = await StrfryRelayHost.StartAsync().ConfigureAwait(false);

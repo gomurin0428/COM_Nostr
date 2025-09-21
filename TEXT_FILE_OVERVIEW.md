@@ -34,7 +34,7 @@
 | `UnitTest_COM_Nostr/Test1.cs` | NostrSigner の署名生成と検証動作を確認する MSTest テストケース群。 |
 | `UnitTest_COM_Nostr/NostrClientInitializationTests.cs` | Initialize の正規化／異常系に加え、二重 Initialize と Dispose 後再利用の境界テストを含む MSTest ケース。 |
 | `UnitTest_COM_Nostr/NostrRelaySessionTests.cs` | docker で strfry リレーを起動し RelaySession の接続と NIP-11 取得を検証する MSTest。 |
-| `UnitTest_COM_Nostr/NostrSubscriptionTests.cs` | docker strfry を用いた購読テスト。EOSE/KeepAlive のほか、キュー overflow (`DropOldest`/`Throw`) とリレー再起動後の自動再接続を検証。 |
+| `UnitTest_COM_Nostr/NostrSubscriptionTests.cs` | docker strfry を用いた購読テスト。EOSE/KeepAlive、同期コンテキスト無しでのコールバック dispatch、キュー overflow (`DropOldest`/`Throw`)、リレー再起動後の自動再接続を検証。 |
 | `UnitTest_COM_Nostr/NostrPublishEventTests.cs` | docker strfry を用いた EVENT 送信の署名成功ケースと署名不正時の NOTICE/COMException を検証する MSTest。 |
 | `UnitTest_COM_Nostr/NostrAuthTests.cs` | モックセッションで AUTH メッセージや `auth-required` プレフィックスの通知連携を検証する MSTest。 |
 | `UnitTest_COM_Nostr/StrfryRelayHost.cs` | テストごとに strfry コンテナを起動・停止し、`RestartAsync` でリレー再起動シナリオも提供する補助ユーティリティ。 |
