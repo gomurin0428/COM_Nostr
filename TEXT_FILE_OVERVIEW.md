@@ -1,4 +1,4 @@
-﻿# Git管理テキストファイル一覧
+# Git管理テキストファイル一覧
 
 | ファイル | 概要 |
 | --- | --- |
@@ -38,7 +38,9 @@
 | `UnitTest_COM_Nostr/NostrAuthTests.cs` | モックセッションで AUTH メッセージや `auth-required` プレフィックスの通知連携を検証する MSTest。 |
 | `UnitTest_COM_Nostr/StrfryRelayHost.cs` | テストごとに strfry コンテナを起動・停止し、`RestartAsync` でリレー再起動シナリオも提供する補助ユーティリティ。 |
 | `UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj` | テストプロジェクトのターゲットフレームワークや参照設定を定義。 |
-| `ImplementationPlan.md` | COM_Nostr 実装フェーズとテスト戦略をまとめた計画ドキュメント。 |
+| `ImplementationPlan.md` | COM_Nostr 実装フェーズとテスト戦略をまとめた計画ドキュメント (完了タスクはチェックボックスで管理)。 |
+| `CHANGELOG.md` | リリース履歴（初版 0.1.0 の主要トピック）を記録。 |
 | `docs/phase0_design.md` | フェーズ0で決定したクラス構成、WebSocket/コールバック方針、例外マッピングの詳細設計メモ。 |
+| `TROUBLESHOOTING.md` | QueueOverflowStrategy 設定や docker strfry 再起動時の注意点をまとめたトラブルシュートメモ。 |
 
-| `TROUBLESHOOTING.md` | QueueOverflowStrategy 設定や docker strfry 再起動時の注意点をまとめたトラブルシュートメモ。 |\r\n\r\n> ※ バイナリ形式の `Nostrプロトコルの現行仕様まとめ.docx` は対象外としています。
+> ※ バイナリ形式の `Nostrプロトコルの現行仕様まとめ.docx` は対象外としています。

@@ -158,6 +158,16 @@
 - コールバックは `ComCallbackDispatcher` によるシリアライズ実行でスレッド境界を統一し、`SynchronizationContext` が無い場合は専用 STA スレッドを生成して処理する。
 - docker + dockurr/strfry を利用した統合テストを MSTest で自動化し、テストケースごとに独立したリレーを立ち上げる。
 
+## インストールと登録手順
+1. `dotnet build COM_Nostr.sln -c Release` を実行し、`COM_Nostr\bin\Release\net8.0-windows` に COM 参照可能な DLL を生成します。
+2. 管理者権限の PowerShell でターゲットのランタイムに応じた `regasm` を実行します。
+   - 64bit クライアント向け: `"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regasm" COM_Nostr.dll /codebase`
+   - 32bit クライアント向け: `"C:\Windows\Microsoft.NET\Framework\v4.0.30319\regasm" COM_Nostr.dll /codebase`
+3. Excel/VBA などの COM クライアントから `COM_Nostr.NostrClient` ProgID を参照して動作確認します。
+4. 登録を解除する場合は同じ `regasm` コマンドに `/u` を付与します。
+
+> self-contained MSI など配布媒体を作成する場合は、上記 regasm コマンドをカスタムアクションとして組み込むか、`dotnet publish -c Release -r win-x64` で生成したフォルダを対象に実行してください。
+
 ## ドキュメント
 - 設計メモ: `docs/phase0_design.md`
 - 仕様要約: `Nostrプロトコルの現行仕様まとめ.docx`
