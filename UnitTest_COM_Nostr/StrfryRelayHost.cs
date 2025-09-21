@@ -11,15 +11,51 @@ namespace UnitTest_COM_Nostr;
 
 internal sealed class StrfryRelayHost : IAsyncDisposable
 {
-    private readonly string _containerName;
+    private string _containerName;
     private readonly int _hostPort;
     private readonly string _volumePath;
+    private readonly string _policyMount;
 
-    private StrfryRelayHost(string containerName, int hostPort, string volumePath)
+    private StrfryRelayHost(string containerName, int hostPort, string volumePath, string policyMount)
     {
         _containerName = containerName;
         _hostPort = hostPort;
         _volumePath = volumePath;
+        _policyMount = policyMount;
+    }
+
+    public async Task RestartAsync()
+    {
+        await RunDockerAsync(new[] { "stop", _containerName }, throwOnError: false).ConfigureAwait(false);
+
+        var newContainer = $"strfry-test-{Guid.NewGuid():N}";
+
+        try
+        {
+            await RunDockerAsync(new[]
+            {
+                "run",
+                "--rm",
+                "-d",
+                "-p",
+                $"{_hostPort}:7777",
+                "-v",
+                $"{_volumePath}:/app/strfry-db",
+                "-v",
+                _policyMount,
+                "--name",
+                newContainer,
+                "dockurr/strfry"
+            }).ConfigureAwait(false);
+        }
+        catch
+        {
+            _containerName = newContainer;
+            throw;
+        }
+
+        _containerName = newContainer;
+        await WaitUntilReadyAsync(_hostPort).ConfigureAwait(false);
     }
 
     public string RelayWebSocketUrl => $"ws://127.0.0.1:{_hostPort}";
@@ -55,7 +91,7 @@ internal sealed class StrfryRelayHost : IAsyncDisposable
 
         await WaitUntilReadyAsync(port).ConfigureAwait(false);
 
-        return new StrfryRelayHost(containerName, port, volumePath);
+        return new StrfryRelayHost(containerName, port, volumePath, policyMount);
     }
 
     public async ValueTask DisposeAsync()
@@ -142,3 +178,4 @@ internal sealed class StrfryRelayHost : IAsyncDisposable
         }
     }
 }
+

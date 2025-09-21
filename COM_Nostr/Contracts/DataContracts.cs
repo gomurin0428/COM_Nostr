@@ -103,6 +103,9 @@ public class SubscriptionOptions
 
     [DispId(3)]
     public object? MaxQueueLength { get; set; }
+
+    [DispId(4)]
+    public object? QueueOverflowStrategy { get; set; }
 }
 
 [ComVisible(true)]

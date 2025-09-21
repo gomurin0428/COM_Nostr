@@ -35,6 +35,7 @@ public sealed class NostrClient : INostrClient
     private SynchronizationContext? _callbackContext;
     private bool _initialized;
     private INostrSigner? _signer;
+    private bool _disposed;
 
     internal bool IsInitialized
     {
@@ -66,6 +67,14 @@ public sealed class NostrClient : INostrClient
             {
                 return _callbackContext;
             }
+        }
+    }
+
+    private void EnsureNotDisposed()
+    {
+        if (_disposed)
+        {
+            throw new COMException("NostrClient has been disposed.", ComErrorCodes.E_NOSTR_OBJECT_DISPOSED);
         }
     }
 
@@ -711,7 +720,8 @@ public sealed class NostrClient : INostrClient
         var keepAlive = options?.KeepAlive ?? true;
         var autoRequery = ConvertToPositiveDouble(options?.AutoRequeryWindowSeconds, nameof(SubscriptionOptions.AutoRequeryWindowSeconds));
         var maxQueueLength = ConvertToPositiveInt(options?.MaxQueueLength, nameof(SubscriptionOptions.MaxQueueLength));
-        return new SubscriptionConfiguration(keepAlive, autoRequery, maxQueueLength);
+        var overflowStrategy = ConvertToOverflowStrategy(options?.QueueOverflowStrategy, nameof(SubscriptionOptions.QueueOverflowStrategy));
+        return new SubscriptionConfiguration(keepAlive, autoRequery, maxQueueLength, overflowStrategy);
     }
 
     private static double? ConvertToPositiveDouble(object? value, string propertyName)
@@ -774,6 +784,71 @@ public sealed class NostrClient : INostrClient
         return result <= 0 ? null : result;
     }
 
+    private static QueueOverflowStrategy ConvertToOverflowStrategy(object? value, string propertyName)
+    {
+        if (value is null)
+        {
+            return QueueOverflowStrategy.DropOldest;
+        }
+
+        if (value is QueueOverflowStrategy strategy)
+        {
+            return strategy;
+        }
+
+        if (value is int intValue)
+        {
+            return intValue == 0 ? QueueOverflowStrategy.DropOldest : QueueOverflowStrategy.Throw;
+        }
+
+        if (value is long longValue)
+        {
+            return longValue == 0 ? QueueOverflowStrategy.DropOldest : QueueOverflowStrategy.Throw;
+        }
+
+        if (value is double doubleValue)
+        {
+            return Math.Abs(doubleValue) < double.Epsilon ? QueueOverflowStrategy.DropOldest : QueueOverflowStrategy.Throw;
+        }
+
+        if (value is float floatValue)
+        {
+            return Math.Abs(floatValue) < float.Epsilon ? QueueOverflowStrategy.DropOldest : QueueOverflowStrategy.Throw;
+        }
+
+        if (value is string textValue)
+        {
+            if (string.IsNullOrWhiteSpace(textValue))
+            {
+                return QueueOverflowStrategy.DropOldest;
+            }
+
+            var normalized = textValue.Trim();
+            if (normalized.Equals("drop", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("dropoldest", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("keep", StringComparison.OrdinalIgnoreCase))
+            {
+                return QueueOverflowStrategy.DropOldest;
+            }
+
+            if (normalized.Equals("throw", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("error", StringComparison.OrdinalIgnoreCase) ||
+                normalized.Equals("fail", StringComparison.OrdinalIgnoreCase))
+            {
+                return QueueOverflowStrategy.Throw;
+            }
+
+            if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInt))
+            {
+                return parsedInt == 0 ? QueueOverflowStrategy.DropOldest : QueueOverflowStrategy.Throw;
+            }
+
+            throw new ArgumentException($"{propertyName} must be either 'DropOldest' or 'Throw'.", propertyName);
+        }
+
+        throw new ArgumentException($"{propertyName} must be specified as a string or integer.", propertyName);
+    }
+
     private static int ParseInt(string text, string propertyName)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -793,7 +868,6 @@ public sealed class NostrClient : INostrClient
 
         throw new ArgumentException($"{propertyName} must be parsable as a number.", propertyName);
     }
-
 
     private static TimeSpan DeterminePublishAckTimeout(ClientRuntimeOptions options)
     {
@@ -1057,7 +1131,6 @@ public sealed class NostrClient : INostrClient
         target.Signature = source.Signature;
     }
 
-
     private static NostrFilter[] NormalizeFilters(NostrFilter[]? filters)
     {
         if (filters is null || filters.Length == 0)
@@ -1277,6 +1350,8 @@ public sealed class NostrRelaySession : INostrRelaySession
     private const int EInvalidarg = unchecked((int)0x80070057);
     private const int EPointer = unchecked((int)0x80004003);
 
+    private const string QueueOverflowClosedReason = "Subscription queue overflow.";
+
     private readonly object _stateLock = new();
     private readonly Uri _webSocketUri;
     private readonly Uri _metadataUri;
@@ -1285,12 +1360,18 @@ public sealed class NostrRelaySession : INostrRelaySession
     private readonly SynchronizationContext? _callbackContext;
     private readonly BackoffPolicy _backoffPolicy;
     private readonly NostrJsonSerializer _serializer;
+    private readonly object _reconnectLock = new();
+    private readonly TimeSpan _receiveTimeout;
 
     private readonly object _subscriptionLock = new();
     private readonly Dictionary<string, NostrSubscription> _subscriptions = new(StringComparer.Ordinal);
     private readonly object _pendingPublishLock = new();
     private readonly Dictionary<string, TaskCompletionSource<NostrOkMessage>> _pendingPublishes = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _authLock = new();
+
+    private Task? _reconnectWorker;
+    private bool _shutdownRequested;
+    private bool _disposed;
 
     private string? _lastAuthChallenge;
     private double? _lastAuthChallengeExpiresAt;
@@ -1324,6 +1405,15 @@ public sealed class NostrRelaySession : INostrRelaySession
         _descriptor.Url = RelayUriUtilities.ToCanonicalString(relayUri);
         _serializer = resources.Serializer;
         _backoffPolicy = new BackoffPolicy(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(32));
+        _receiveTimeout = resources.Options.ReceiveTimeout ?? TimeSpan.FromSeconds(60);
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(NostrRelaySession));
+        }
     }
 
     public string Url
@@ -1449,6 +1539,8 @@ public sealed class NostrRelaySession : INostrRelaySession
 
     internal void SetAuthCallback(INostrAuthCallback callback)
     {
+        ThrowIfDisposed();
+
         if (callback is null)
         {
             throw new ArgumentNullException(nameof(callback));
@@ -1462,6 +1554,8 @@ public sealed class NostrRelaySession : INostrRelaySession
 
     internal bool TryGetAuthChallenge(out string? challenge, out double? expiresAt)
     {
+        ThrowIfDisposed();
+
         lock (_authLock)
         {
             challenge = _lastAuthChallenge;
@@ -1541,6 +1635,10 @@ public sealed class NostrRelaySession : INostrRelaySession
                 _state = RelaySessionState.Connected;
                 _backoffPolicy.Reset();
             }
+            if (isReconnect)
+            {
+                ResubscribeAll();
+            }
         }
         catch
         {
@@ -1588,6 +1686,7 @@ public sealed class NostrRelaySession : INostrRelaySession
     {
         var buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
         var messageBuffer = new ArrayBufferWriter<byte>(buffer.Length);
+        Exception? failure = null;
 
         try
         {
@@ -1639,11 +1738,13 @@ public sealed class NostrRelaySession : INostrRelaySession
                 _lastFault = ex;
                 _state = RelaySessionState.Faulted;
             }
+
+            failure = ex;
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
-            CloseAllSubscriptions("Relay connection ended.");
+            HandleConnectionTermination(failure);
         }
     }
 
@@ -1707,10 +1808,18 @@ public sealed class NostrRelaySession : INostrRelaySession
                 return;
             }
 
-            if (TryGetSubscription(message.SubscriptionId, out var subscription) && subscription is not null)
+            var subscriptionId = message.SubscriptionId;
+            if (TryGetSubscription(subscriptionId, out var subscription) && subscription is not null)
             {
-                var contractEvent = ConvertEvent(message.Event);
-                subscription.HandleEvent(contractEvent);
+                try
+                {
+                    var contractEvent = ConvertEvent(message.Event);
+                    subscription.HandleEvent(contractEvent);
+                }
+                catch (SubscriptionQueueOverflowException)
+                {
+                    HandleSubscriptionOverflow(subscriptionId, subscription);
+                }
             }
         }
         else if (string.Equals(messageType, "EOSE", StringComparison.Ordinal))
@@ -1739,6 +1848,21 @@ public sealed class NostrRelaySession : INostrRelaySession
         }
     }
 
+    private void HandleSubscriptionOverflow(string subscriptionId, NostrSubscription subscription)
+    {
+        try
+        {
+            SendClose(subscriptionId);
+        }
+        catch
+        {
+            // Ignore errors while attempting to stop the subscription on the relay.
+        }
+
+        TryRemoveSubscription(subscriptionId, subscription);
+        subscription.HandleClosed(QueueOverflowClosedReason);
+    }
+
     internal NostrSubscription RegisterSubscription(
         string subscriptionId,
         NostrFilter[] originalFilters,
@@ -1747,6 +1871,8 @@ public sealed class NostrRelaySession : INostrRelaySession
         SubscriptionConfiguration configuration,
         SynchronizationContext? callbackContext)
     {
+        ThrowIfDisposed();
+
         if (string.IsNullOrWhiteSpace(subscriptionId))
         {
             throw new ArgumentException("Subscription identifier must not be null or whitespace.", nameof(subscriptionId));
@@ -1864,6 +1990,172 @@ public sealed class NostrRelaySession : INostrRelaySession
         }
     }
 
+    private void ResubscribeAll()
+    {
+        NostrSubscription[] snapshot;
+
+        lock (_subscriptionLock)
+        {
+            if (_subscriptions.Count == 0)
+            {
+                return;
+            }
+
+            snapshot = _subscriptions.Values.ToArray();
+        }
+
+        foreach (var subscription in snapshot)
+        {
+            try
+            {
+                var filters = subscription.BuildRequestFilters();
+                SendRequest(subscription.Id, filters);
+            }
+            catch (Exception ex)
+            {
+                if (RemoveSubscription(subscription.Id, out _))
+                {
+                    subscription.HandleClosed($"Resubscribe failed: {ex.Message}");
+                }
+            }
+        }
+    }
+
+    private void PrepareSubscriptionsForReconnect()
+    {
+        NostrSubscription[] snapshot;
+
+        lock (_subscriptionLock)
+        {
+            if (_subscriptions.Count == 0)
+            {
+                return;
+            }
+
+            snapshot = _subscriptions.Values.ToArray();
+        }
+
+        foreach (var subscription in snapshot)
+        {
+            subscription.PrepareForReconnect();
+        }
+    }
+
+    private void HandleConnectionTermination(Exception? failure)
+    {
+        var exception = failure ?? new OperationCanceledException("Relay connection ended.");
+        FailPendingPublishes(exception);
+
+        lock (_stateLock)
+        {
+            _connection = null;
+            _receiveLoop = null;
+            _sessionCancellation = null;
+
+            if (_shutdownRequested)
+            {
+                _state = RelaySessionState.Disconnected;
+            }
+            else if (failure is not null)
+            {
+                _lastFault = failure;
+                _state = RelaySessionState.Faulted;
+            }
+            else
+            {
+                _state = RelaySessionState.Disconnected;
+            }
+        }
+
+        if (_shutdownRequested || _disposed)
+        {
+            CloseAllSubscriptions("Relay connection ended.");
+            return;
+        }
+
+        PrepareSubscriptionsForReconnect();
+        ScheduleReconnect();
+    }
+
+    private void ScheduleReconnect()
+    {
+        lock (_reconnectLock)
+        {
+            if (_shutdownRequested || _disposed)
+            {
+                return;
+            }
+
+            if (_reconnectWorker is not null && !_reconnectWorker.IsCompleted)
+            {
+                return;
+            }
+
+            _reconnectWorker = Task.Run(async () =>
+            {
+                try
+                {
+                    await ReconnectLoopAsync().ConfigureAwait(false);
+                }
+                finally
+                {
+                    lock (_reconnectLock)
+                    {
+                        _reconnectWorker = null;
+                    }
+                }
+            });
+        }
+    }
+
+    private async Task ReconnectLoopAsync()
+    {
+        while (true)
+        {
+            if (_shutdownRequested || _disposed)
+            {
+                return;
+            }
+
+            try
+            {
+                await ConnectInternalAsync(isReconnect: true, CancellationToken.None).ConfigureAwait(false);
+                return;
+            }
+            catch (Exception ex)
+            {
+                lock (_stateLock)
+                {
+                    _lastFault = ex;
+                    _state = RelaySessionState.Faulted;
+                }
+
+                await Task.Delay(_backoffPolicy.GetNextDelay()).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private void FailPendingPublishes(Exception reason)
+    {
+        KeyValuePair<string, TaskCompletionSource<NostrOkMessage>>[] snapshot;
+
+        lock (_pendingPublishLock)
+        {
+            if (_pendingPublishes.Count == 0)
+            {
+                return;
+            }
+
+            snapshot = _pendingPublishes.ToArray();
+            _pendingPublishes.Clear();
+        }
+
+        foreach (var pair in snapshot)
+        {
+            pair.Value.TrySetException(reason);
+        }
+    }
+
     internal void SendRequest(string subscriptionId, IReadOnlyList<NostrFilterDto> filters)
     {
         var payload = _serializer.SerializeRequest(new NostrRequestMessage(subscriptionId, filters));
@@ -1878,6 +2170,8 @@ public sealed class NostrRelaySession : INostrRelaySession
 
     internal NostrOkMessage PublishEvent(NostrEventDto eventDto, TimeSpan ackTimeout, int maxAttempts)
     {
+        ThrowIfDisposed();
+
         if (eventDto is null)
         {
             throw new ArgumentNullException(nameof(eventDto));
@@ -1894,6 +2188,8 @@ public sealed class NostrRelaySession : INostrRelaySession
 
     internal NostrOkMessage Authenticate(NostrEventDto eventDto, TimeSpan ackTimeout, int maxAttempts)
     {
+        ThrowIfDisposed();
+
         if (eventDto is null)
         {
             throw new ArgumentNullException(nameof(eventDto));
@@ -2332,7 +2628,6 @@ public sealed class NostrRelaySession : INostrRelaySession
         };
     }
 
-
     private async Task CleanupPreviousAsync(IWebSocketConnection? connection, Task? receiveLoop, CancellationTokenSource? cancellation)
     {
         if (cancellation is not null)
@@ -2395,11 +2690,12 @@ public sealed class NostrRelaySession : INostrRelaySession
 
 internal readonly struct SubscriptionConfiguration
 {
-    public SubscriptionConfiguration(bool keepAlive, double? autoRequeryWindowSeconds, int? maxQueueLength)
+    public SubscriptionConfiguration(bool keepAlive, double? autoRequeryWindowSeconds, int? maxQueueLength, QueueOverflowStrategy overflowStrategy)
     {
         KeepAlive = keepAlive;
         AutoRequeryWindowSeconds = autoRequeryWindowSeconds;
         MaxQueueLength = maxQueueLength;
+        OverflowStrategy = overflowStrategy;
     }
 
     public bool KeepAlive { get; }
@@ -2407,6 +2703,8 @@ internal readonly struct SubscriptionConfiguration
     public double? AutoRequeryWindowSeconds { get; }
 
     public int? MaxQueueLength { get; }
+
+    public QueueOverflowStrategy OverflowStrategy { get; }
 }
 
 [ComVisible(true)]
@@ -2423,6 +2721,7 @@ public sealed class NostrSubscription : INostrSubscription
     private readonly bool _keepAlive;
     private readonly double? _autoRequeryWindowSeconds;
     private readonly int _maxQueueLength;
+    private readonly QueueOverflowStrategy _overflowStrategy;
 
     private readonly object _gate = new();
     private readonly Queue<CallbackWork> _pendingCallbacks = new();
@@ -2453,6 +2752,7 @@ public sealed class NostrSubscription : INostrSubscription
         _keepAlive = configuration.KeepAlive;
         _autoRequeryWindowSeconds = configuration.AutoRequeryWindowSeconds;
         _maxQueueLength = configuration.MaxQueueLength ?? 0;
+        _overflowStrategy = configuration.OverflowStrategy;
         _filters = CloneFilters(filters);
         _filterDtos = filterDtos ?? throw new ArgumentNullException(nameof(filterDtos));
     }
@@ -2568,6 +2868,20 @@ public sealed class NostrSubscription : INostrSubscription
         lock (_gate)
         {
             return BuildRequestFiltersInternal();
+        }
+    }
+
+    internal void PrepareForReconnect()
+    {
+        lock (_gate)
+        {
+            if (_status == SubscriptionStatus.Closed)
+            {
+                return;
+            }
+
+            _status = SubscriptionStatus.Pending;
+            _closeRequested = false;
         }
     }
 
@@ -2707,6 +3021,7 @@ public sealed class NostrSubscription : INostrSubscription
     private void EnqueueWork(CallbackWork work)
     {
         bool schedule = false;
+        bool overflow = false;
 
         lock (_gate)
         {
@@ -2714,19 +3029,37 @@ public sealed class NostrSubscription : INostrSubscription
             {
                 if (_maxQueueLength > 0 && _pendingEventCallbacks >= _maxQueueLength)
                 {
-                    DropOldestEventLocked();
+                    if (_overflowStrategy == QueueOverflowStrategy.DropOldest)
+                    {
+                        DropOldestEventLocked();
+                    }
+                    else
+                    {
+                        overflow = true;
+                    }
                 }
 
-                _pendingEventCallbacks++;
+                if (!overflow)
+                {
+                    _pendingEventCallbacks++;
+                }
             }
 
-            _pendingCallbacks.Enqueue(work);
-
-            if (!_dispatchScheduled)
+            if (!overflow)
             {
-                _dispatchScheduled = true;
-                schedule = true;
+                _pendingCallbacks.Enqueue(work);
+
+                if (!_dispatchScheduled)
+                {
+                    _dispatchScheduled = true;
+                    schedule = true;
+                }
             }
+        }
+
+        if (overflow)
+        {
+            throw new SubscriptionQueueOverflowException(_relayUrl, Id);
         }
 
         if (schedule)
@@ -2962,6 +3295,30 @@ public sealed class NostrSubscription : INostrSubscription
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+internal sealed class SubscriptionQueueOverflowException : Exception
+{
+    public SubscriptionQueueOverflowException(string relayUrl, string subscriptionId)
+        : base($"Subscription '{subscriptionId}' on relay '{relayUrl}' exceeded the configured queue length.")
+    {
+        RelayUrl = relayUrl;
+        SubscriptionId = subscriptionId;
+    }
+
+    public string RelayUrl { get; }
+
+    public string SubscriptionId { get; }
+}
 
 
 

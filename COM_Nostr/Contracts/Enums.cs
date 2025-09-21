@@ -21,3 +21,11 @@ public enum SubscriptionStatus
     Draining = 2,
     Closed = 3
 }
+
+[ComVisible(true)]
+[Guid("a0f76bce-1e38-4f62-9aa9-aa9f31fa8cbd")]
+public enum QueueOverflowStrategy
+{
+    DropOldest = 0,
+    Throw = 1
+}

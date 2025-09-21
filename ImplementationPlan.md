@@ -53,10 +53,11 @@
 - 成果物: AUTH 処理ユニットテスト (モックリレー) と、エラーコード→通知マッピング表。
 
 ### フェーズ6: 信頼性・リソース管理
-- 送信キューと backpressure 制御 (MaxQueueLength) を実装し、超過時は古いイベント破棄や例外を選択可能にする。
-- Keep-alive (PING/PONG またはタイムアウト監視) と自動再接続時の REQ 再送、AutoRequeryWindowSeconds 活用によるギャップ回収を実装。
-- Dispose パターンで WebSocket/HTTP リソースを解放し、GC 最適化・多重解放耐性を確認。
+- 送信キューと backpressure 制御 (MaxQueueLength) を実装し、超過時は古いイベント破棄や例外を選択可能にする。（実装済）
+- Keep-alive (PING/PONG またはタイムアウト監視) と自動再接続時の REQ 再送、AutoRequeryWindowSeconds 活用によるギャップ回収を実装。（実装済）
+- Dispose パターンで WebSocket/HTTP リソースを解放し、GC 最適化・多重解放耐性を確認。（実装済）
 - 成果物: リソースクリーンアップテスト、再接続 E2E テストケース。
+- 2025-09-21: UnitTest_COM_Nostr.NostrSubscriptionTests で QueueOverflowStrategy の Drop/Throw 両方とリレー再起動後の自動再接続を検証済み。
 
 ### フェーズ7: COM 公開整備と API 一貫性
 - NostrClient, RelaySession, Subscription に [ClassInterface(ClassInterfaceType.None)] 実装クラスを用意し、必要な COM 属性と GUID を付与。
@@ -101,3 +102,5 @@
 - README.md (最新のインターフェイス仕様)
 - Nostrプロトコルの現行仕様まとめ.docx (NIP-01/11/15/20/42/65 要約)
 - dockurr/strfry リポジトリ (統合テスト用リレー)
+
+

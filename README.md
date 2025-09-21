@@ -1,4 +1,4 @@
-# COM_Nostr
+﻿# COM_Nostr
 
 ## コンポーネント概要
 - Windows クライアントから Nostr リレーと対話する COM オートメーション対応コンポーネント。
@@ -54,7 +54,7 @@
 - `INostrRelaySession* ConnectRelay([in] RelayDescriptor descriptor, [in] INostrAuthCallback* authCallback)` : NIP-11 メタ取得→WebSocket 接続→`Connected` 状態遷移。`authCallback` は `ComCallbackDispatcher` 経由で発火。
 - `void DisconnectRelay([in] BSTR relayUrl)` : graceful に CLOSE→CLOSED を待機。強制切断時は `State=Faulted`。
 - `VARIANT_BOOL HasRelay([in] BSTR relayUrl)` : セッション存在確認。
-- `INostrSubscription* OpenSubscription([in] BSTR relayUrl, [in] SAFEARRAY(NostrFilter) filters, [in] INostrEventCallback* callback, [in] SubscriptionOptions options)` : REQ を発行し購読ハンドルを返す。`Id` は 64 文字 hex で自動生成し、コールバックは捕捉済み `SynchronizationContext` があればそちらへ、存在しない場合は内部キュー経由で順番にディスパッチする。`SubscriptionOptions.KeepAlive` が false のときは初回 `EOSE` 後に `CLOSE` を自動送信し、`AutoRequeryWindowSeconds` が正の値なら `UpdateFilters` 時に `since` を補正する。`MaxQueueLength` を設定するとキュー上限に達した古いイベントから破棄される。
+- `INostrSubscription* OpenSubscription([in] BSTR relayUrl, [in] SAFEARRAY(NostrFilter) filters, [in] INostrEventCallback* callback, [in] SubscriptionOptions options)` : REQ を発行し購読ハンドルを返す。`Id` は 64 文字 hex で自動生成し、コールバックは捕捉済み `SynchronizationContext` があればそちらへ、存在しない場合は内部キュー経由で順番にディスパッチする。`SubscriptionOptions.KeepAlive` が false のときは初回 `EOSE` 後に `CLOSE` を自動送信し、`AutoRequeryWindowSeconds` が正の値なら `UpdateFilters` 時に `since` を補正する。`MaxQueueLength` を設定するとキュー上限に達した際の挙動を `QueueOverflowStrategy` で制御でき、既定 (`DropOldest`) では最古のイベントを破棄し、`Throw` を選ぶと購読を `CLOSED` に遷移させる。
 - `void PublishEvent([in] BSTR relayUrl, [in] NostrEvent eventPayload)` : EVENT 送信。Signature が空なら `INostrSigner` による署名＋Id 計算を内部実装し、リレーの `OK` 応答を `ClientOptions.ReceiveTimeout` (未指定時は 10 秒) まで待機して `LastOkResult` に反映。`OK.success=false` や `NOTICE` は `INostrEventCallback.OnNotice` に転送し、timeout は `HRESULT_FROM_WIN32(ERROR_TIMEOUT)`、拒否は `E_NOSTR_WEBSOCKET_ERROR` を返す。
 - `void RespondAuth([in] BSTR relayUrl, [in] NostrEvent authEvent)` : kind:22242 イベントを元に AUTH メッセージを送信。
 - `void RefreshRelayInfo([in] BSTR relayUrl)` : NIP-11 に従うメタ情報更新をトリガー。
@@ -146,7 +146,7 @@
 - `ConnectRelay` は NIP-11 のメタ情報 (`supported_nips`, `limitation`, `auth` など) をキャッシュし、`RelayDescriptor.Metadata` として公開。
 - `RelayDescriptor.Preferred` に基づき、書き込み優先リレーと読み出し専用リレーを別々に管理。
 - NIP-65 のリレーリスト (kind:10002) を `Tags` から解析し `RelayCatalog` (将来拡張) に反映する余地を残す。
-- ネットワーク障害検出時は自動でバックオフし、`Reconnect()` で手動復旧を提供。
+- ネットワーク障害検出時は受信タイムアウトやサーバーからの CLOSE を契機に自動バックオフで再接続し、成功後は既存サブスクリプションに対して REQ を再送して欠損を補う (`AutoRequeryWindowSeconds` を反映)。手動 `Reconnect()` も引き続き提供。
 
 ## 実装メモ
 - WebSocket は `ClientWebSocket` をラップし、送受信タスクを `CancellationToken` で制御する。外部 ProgID 指定時は生成失敗を HRESULT で返し、既定実装へはフォールバックしない。
