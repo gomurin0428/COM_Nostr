@@ -1,4 +1,4 @@
-﻿# COM_Nostr
+# COM_Nostr
 
 ## コンポーネント概要
 - Windows クライアントから Nostr リレーと対話する COM オートメーション対応コンポーネント。
@@ -159,17 +159,40 @@
 - docker + dockurr/strfry を利用した統合テストを MSTest で自動化し、テストケースごとに独立したリレーを立ち上げる。
 
 ## インストールと登録手順
-1. `dotnet build COM_Nostr.sln -c Release` を実行し、`COM_Nostr\bin\Release\net8.0-windows` に COM 参照可能な DLL を生成します。
-2. 管理者権限の PowerShell でターゲットのランタイムに応じた `regasm` を実行します。
-   - 64bit クライアント向け: `"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regasm" COM_Nostr.dll /codebase`
-   - 32bit クライアント向け: `"C:\Windows\Microsoft.NET\Framework\v4.0.30319\regasm" COM_Nostr.dll /codebase`
-3. Excel/VBA などの COM クライアントから `COM_Nostr.NostrClient` ProgID を参照して動作確認します。
-4. 登録を解除する場合は同じ `regasm` コマンドに `/u` を付与します。
 
-> self-contained MSI など配布媒体を作成する場合は、上記 regasm コマンドをカスタムアクションとして組み込むか、`dotnet publish -c Release -r win-x64` で生成したフォルダを対象に実行してください。
+### MSI インストーラの作成 (Setup_COM_Nostr)
+#### 前提条件
+- Visual Studio 2022 (17.8 以降) と "Microsoft Visual Studio Installer Projects" 拡張機能
+- .NET SDK 8.0 以上 (Release ビルド用) と .NET 8 Desktop Runtime (配布先にインストール)
+- `dotnet build` 済みの `COM_Nostr\bin\Release\net8.0-windows` フォルダー
 
+#### Setup_COM_Nostr プロジェクト構成手順
+1. Visual Studio で `COM_Nostr.sln` を開き、構成を `Release|Any CPU` に合わせます。
+2. `COM_Nostr` プロジェクトをビルドし、`COM_Nostr.comhost.dll` を含む最新の成果物を生成します。
+3. `Setup_COM_Nostr` プロジェクトを開き、「ファイル システム」エディターの `アプリケーション フォルダー` を選択します。
+4. `アプリケーション フォルダー` を右クリックし「プロジェクトの出力の追加」を選択、`Primary output from COM_Nostr (Active)` を追加します。追加後、プロパティ `Register` を `vsdrpDoNotRegister` に変更して `regasm` ベースの登録を無効化します。
+5. 同じ `アプリケーション フォルダー` に Release ビルド成果物から次のファイルを追加します。
+   - `COM_Nostr.comhost.dll` (プロパティ `Register` = `vsdrfCOMSelfReg`, `Vital` = `True`)
+   - `COM_Nostr.dll`
+   - `COM_Nostr.deps.json`
+   - `COM_Nostr.runtimeconfig.json`
+   - `NBitcoin.Secp256k1.dll`
+6. 製品情報 (`Manufacturer`, `ProductVersion` など) を必要に応じて更新します。`ProductVersion` を変更した場合は Visual Studio が新しい `ProductCode` を生成するよう保存時のダイアログに従ってください。
+
+#### MSI のビルドとインストール
+1. Visual Studio のビルド構成を `Release` にしたまま、メニューの「ビルド」→「ソリューションのビルド」または `Setup_COM_Nostr` の「ビルド」を実行します。
+2. 正常終了すると `Setup_COM_Nostr\Release\Setup_COM_Nostr.msi` が生成されます。配布時は同フォルダー内の CAB/Setup.exe を含め全ファイルをまとめて提供してください。
+3. 配布先では管理者権限の PowerShell で `msiexec /i .\Setup_COM_Nostr.msi` を実行します。インストール時に `COM_Nostr.comhost.dll` の `DllRegisterServer` が自動実行され、COM ProgID `COM_Nostr.NostrClient` が登録されます。
+4. アンインストールは `msiexec /x {ProductCode}` または Windows の「アプリと機能」から行います。アンインストール時には `DllUnregisterServer` が呼ばれます。
+
+### 手動登録 (開発・デバッグ用)
+1. `dotnet build COM_Nostr.sln -c Release` を実行して Release ビルドを生成します。
+2. 管理者権限の PowerShell で `regsvr32.exe /s "<リポジトリパス>\COM_Nostr\COM_Nostr\bin\Release\net8.0-windows\COM_Nostr.comhost.dll"` を実行し、COM を登録します。
+3. Excel や PowerShell (`New-Object -ComObject COM_Nostr.NostrClient`) で ProgID が作成できるか確認します。
+4. 登録解除は `regsvr32.exe /u /s "...\COM_Nostr.comhost.dll"` を実行します。旧来の `regasm` (`COM_Nostr.dll`) は .NET 8 の comhost では利用しない点に注意してください。
 ## ドキュメント
 - 設計メモ: `docs/phase0_design.md`
 - 仕様要約: `Nostrプロトコルの現行仕様まとめ.docx`
 - テキストファイル一覧: `TEXT_FILE_OVERVIEW.md`
+
 

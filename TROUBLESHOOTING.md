@@ -6,3 +6,6 @@
 - Docker 上の strfry リレーを再起動するテスト (RestartAsync) を実行する際は、既存コンテナとポート競合しないことを確認してください。停止済みでも --rm オプションが動作しない環境では手動で docker stop が必要です。
 - RestartAsync は毎回コンテナ名を再生成するため、テストが異常終了した場合は docker ps -a で孤立した strfry-test-* を停止・削除してから再実行してください。
 
+- Setup_COM_Nostr で生成した MSI を非管理者セッションで実行すると `DllRegisterServer failed with error 0x80004005` などの自己登録失敗が発生する。管理者権限で実行し、事前に .NET 8 Desktop Runtime (x64) をインストールしてください。
+
+

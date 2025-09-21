@@ -5,7 +5,7 @@
 | `.gitattributes` | 改行コードの正規化や特定拡張子のマージ・差分設定方針を定義。 |
 | `.gitignore` | Visual Studio/ .NET 開発で不要な生成物を除外するための無視設定。 |
 | `Agents.md` | コントリビューター向けの作業ガイドラインとテスト方針を箇条書きで記載。 |
-| `README.md` | COM_Nostr コンポーネントの概要、公開 COM インターフェイス、設計方針、データモデルをまとめた中心ドキュメント。 |
+| `README.md` | COM_Nostr コンポーネントの概要、公開 COM インターフェイス、データモデル、Setup_COM_Nostr を用いた MSI 作成手順と手動登録手順をまとめた中心ドキュメント。 |
 | `COM_Nostr.sln` | 本体ライブラリとテストプロジェクトを含む Visual Studio ソリューション定義。 |
 | `COM_Nostr/COM_Nostr.csproj` | COM 対応の .NET 8 プロジェクト設定と NBitcoin.Secp256k1 依存パッケージを指定。 |
 | `COM_Nostr/Contracts/DataContracts.cs` | COM で公開するイベント、フィルタ、オプション等の DTO クラス群を定義し、`SubscriptionOptions.QueueOverflowStrategy` を追加。 |
@@ -45,3 +45,4 @@
 | `TROUBLESHOOTING.md` | QueueOverflowStrategy 設定や docker strfry 再起動時の注意点をまとめたトラブルシュートメモ。 |
 
 > ※ バイナリ形式の `Nostrプロトコルの現行仕様まとめ.docx` は対象外としています。
+
