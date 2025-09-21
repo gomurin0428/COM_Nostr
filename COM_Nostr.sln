@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "COM_Nostr", "COM_Nostr\COM_
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTest_COM_Nostr", "UnitTest_COM_Nostr\UnitTest_COM_Nostr.csproj", "{7021A99F-ED5E-414E-B463-31C593795C3B}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup_COM_Nostr", "Setup_COM_Nostr\Setup_COM_Nostr.vdproj", "{03B2855B-00D1-FF90-942C-0185971EB2BE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,8 @@ Global
 		{7021A99F-ED5E-414E-B463-31C593795C3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7021A99F-ED5E-414E-B463-31C593795C3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7021A99F-ED5E-414E-B463-31C593795C3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03B2855B-00D1-FF90-942C-0185971EB2BE}.Debug|Any CPU.ActiveCfg = Debug
+		{03B2855B-00D1-FF90-942C-0185971EB2BE}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
