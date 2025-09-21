@@ -108,13 +108,14 @@
 | --- | --- | --- |
 | `E_NOSTR_SIGNER_MISSING` | `0x88990001` | 署名者未設定で EVENT/AUTH を実行した場合。
 | `E_NOSTR_RELAY_NOT_CONNECTED` | `0x88990002` | 未接続リレーに操作した場合。
+| `E_NOSTR_NOT_INITIALIZED` | `0x88990003` | `Initialize` を呼び出す前に API を使用した場合。
+| `E_NOSTR_WEBSOCKET_ERROR` | `0x80200010` | NIP-11 取得や WebSocket 接続時のネットワーク障害。
 | `E_INVALIDARG` | `0x80070057` | パラメータ検証エラー (URL/フィルタ等)。
 | `HRESULT_FROM_WIN32(ERROR_TIMEOUT)` | `0x800705B4` | EVENT 応答待ちタイムアウト。
 | `COR_E_FORMAT` | `0x80131537` | JSON シリアライズ/パース失敗。
-| `0x80200010` | WebSocket 転送エラー | ネットワーク/ソケット層の異常。
 
 - すべての公開メソッドで例外を捕捉し、対応する HRESULT を設定した `COMException` を送出する。
-- 内部では `ComErrorMapper` ヘルパーで .NET 例外から HRESULT を決定する。
+- 現状は各メソッドで直接 HRESULT を割り当てている (フェーズ3 で共通ヘルパーを導入予定)。
 
 ## イベント送信フロー
 1. `NostrEventDraft` を組み立て (`CreatedAt`, `Kind`, `Tags`, `Content`)。
