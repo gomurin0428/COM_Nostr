@@ -1,12 +1,10 @@
 using System;
 using System.Net.WebSockets;
-using System.Runtime.InteropServices;
 
 namespace COM_Nostr.Internal;
 
 internal static class WebSocketFactoryResolver
 {
-    private const int RegdbEClassnotreg = unchecked((int)0x80040154);
 
     public static Func<IWebSocketConnection> Create(ClientRuntimeOptions options)
     {
@@ -23,7 +21,7 @@ internal static class WebSocketFactoryResolver
         var factoryType = Type.GetTypeFromProgID(options.WebSocketFactoryProgId, throwOnError: false);
         if (factoryType is null)
         {
-            throw new COMException($"WebSocket factory ProgID '{options.WebSocketFactoryProgId}' is not registered.", RegdbEClassnotreg);
+            throw HResults.Exception($"WebSocket factory ProgID '{options.WebSocketFactoryProgId}' is not registered.", HResults.E_CLASSNOTREGISTERED);
         }
 
         if (typeof(IWebSocketFactory).IsAssignableFrom(factoryType))

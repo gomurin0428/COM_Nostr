@@ -19,12 +19,9 @@ namespace COM_Nostr.Contracts;
 [Guid("7d3091fe-ca18-49ba-835c-012991076660")]
 [ClassInterface(ClassInterfaceType.None)]
 [ProgId("COM_Nostr.NostrClient")]
-public sealed class NostrClient : INostrClient
+public sealed class NostrClient : INostrClient, IDisposable
 {
     private const string DefaultUserAgent = "COM_Nostr/1.0";
-    private const int EInvalidarg = unchecked((int)0x80070057);
-    private const int EPointer = unchecked((int)0x80004003);
-    private const int ETimeout = unchecked((int)0x800705B4);
     private static readonly TimeSpan DefaultPublishAckTimeout = TimeSpan.FromSeconds(10);
     private const int PublishRetryAttempts = 3;
 
@@ -74,12 +71,14 @@ public sealed class NostrClient : INostrClient
     {
         if (_disposed)
         {
-            throw new COMException("NostrClient has been disposed.", ComErrorCodes.E_NOSTR_OBJECT_DISPOSED);
+            throw HResults.ObjectDisposed("NostrClient has been disposed.");
         }
     }
 
     public void Initialize(ClientOptions options)
     {
+        EnsureNotDisposed();
+
         var capturedContext = SynchronizationContext.Current;
 
         try
@@ -92,6 +91,11 @@ public sealed class NostrClient : INostrClient
 
             lock (_syncRoot)
             {
+                if (_initialized)
+                {
+                    throw HResults.AlreadyInitialized("NostrClient.Initialize can only be called once per instance.");
+                }
+
                 _resources = resources;
                 _callbackContext = capturedContext;
                 _initialized = true;
@@ -103,23 +107,63 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
         catch (InvalidOperationException ex)
         {
-            throw new COMException(ex.Message, ex);
+            throw HResults.Exception(ex.Message, ex);
         }
         catch (Exception ex)
         {
-            throw new COMException("Failed to initialize NostrClient.", ex);
+            throw HResults.Exception("Failed to initialize NostrClient.", ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Dictionary<string, NostrRelaySession> sessions;
+
+        lock (_syncRoot)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            sessions = new Dictionary<string, NostrRelaySession>(_relaySessions);
+            _relaySessions.Clear();
+            _resources = null;
+            _callbackContext = null;
+            _initialized = false;
+            _signer = null;
+        }
+
+        foreach (var session in sessions.Values)
+        {
+            try
+            {
+                session.CloseAllSubscriptions("Client disposed.");
+                session.Close();
+            }
+            catch
+            {
+                // Best-effort cleanup during dispose.
+            }
+            finally
+            {
+                session.MarkDisposed();
+            }
         }
     }
 
     public void SetSigner(INostrSigner signer)
     {
+        EnsureNotDisposed();
+
         if (signer is null)
         {
-            throw new COMException("Signer must not be null.", EPointer);
+            throw HResults.PointerRequired("Signer must not be null.");
         }
 
         lock (_syncRoot)
@@ -133,12 +177,12 @@ public sealed class NostrClient : INostrClient
     {
         if (descriptor is null)
         {
-            throw new COMException("Relay descriptor must not be null.", EPointer);
+            throw HResults.PointerRequired("Relay descriptor must not be null.");
         }
 
         if (authCallback is null)
         {
-            throw new COMException("Auth callback must not be null.", EPointer);
+            throw HResults.PointerRequired("Auth callback must not be null.");
         }
 
         var resources = EnsureResources();
@@ -151,7 +195,7 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
 
         var key = RelayUriUtilities.GetSessionKey(relayUri);
@@ -186,15 +230,15 @@ public sealed class NostrClient : INostrClient
         }
         catch (OperationCanceledException)
         {
-            throw new COMException($"Relay '{descriptor.Url}' connection timed out.", ETimeout);
+            throw HResults.Timeout($"Relay '{descriptor.Url}' connection timed out.");
         }
         catch (HttpRequestException ex)
         {
-            throw new COMException($"Failed to fetch NIP-11 metadata for '{descriptor.Url}'. {ex.Message}", ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+            throw HResults.WebSocketFailure($"Failed to fetch NIP-11 metadata for '{descriptor.Url}'. {ex.Message}");
         }
         catch (WebSocketException ex)
         {
-            throw new COMException($"Failed to connect to relay '{descriptor.Url}'. {ex.Message}", ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+            throw HResults.WebSocketFailure($"Failed to connect to relay '{descriptor.Url}'. {ex.Message}");
         }
         catch (COMException)
         {
@@ -202,7 +246,7 @@ public sealed class NostrClient : INostrClient
         }
         catch (Exception ex)
         {
-            throw new COMException($"Failed to connect to relay '{descriptor.Url}'.", ex);
+            throw HResults.WebSocketFailure($"Failed to connect to relay '{descriptor.Url}'.", ex);
         }
     }
 
@@ -226,7 +270,11 @@ public sealed class NostrClient : INostrClient
         }
         catch (Exception ex)
         {
-            throw new COMException($"Failed to close relay '{relayUrl}'.", ex);
+            throw HResults.WebSocketFailure($"Failed to close relay '{relayUrl}'.", ex);
+        }
+        finally
+        {
+            session.MarkDisposed();
         }
     }
 
@@ -236,7 +284,7 @@ public sealed class NostrClient : INostrClient
 
         if (string.IsNullOrWhiteSpace(relayUrl))
         {
-            throw new COMException("Relay URL must not be null or whitespace.", EInvalidarg);
+            throw HResults.InvalidArgument("Relay URL must not be null or whitespace.");
         }
 
         Uri relayUri;
@@ -246,7 +294,7 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
 
         var key = RelayUriUtilities.GetSessionKey(relayUri);
@@ -262,7 +310,7 @@ public sealed class NostrClient : INostrClient
 
         if (callback is null)
         {
-            throw new COMException("Event callback must not be null.", EPointer);
+            throw HResults.PointerRequired("Event callback must not be null.");
         }
 
         var normalizedFilters = NormalizeFilters(filters);
@@ -274,7 +322,7 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
 
         var configuration = NormalizeSubscriptionOptions(options);
@@ -282,7 +330,7 @@ public sealed class NostrClient : INostrClient
 
         if (!session.ReadEnabled)
         {
-            throw new COMException($"Relay '{relayUrl}' is not configured for reading.", EInvalidarg);
+            throw HResults.InvalidArgument($"Relay '{relayUrl}' is not configured for reading.");
         }
 
         var subscriptionId = GenerateSubscriptionId();
@@ -299,23 +347,23 @@ public sealed class NostrClient : INostrClient
         }
         catch (OperationCanceledException)
         {
-            throw new COMException($"Opening subscription on '{relayUrl}' timed out.", ETimeout);
+            throw HResults.Timeout($"Opening subscription on '{relayUrl}' timed out.");
         }
         catch (WebSocketException ex)
         {
-            throw new COMException($"Failed to open subscription on '{relayUrl}'. {ex.Message}", ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+            throw HResults.WebSocketFailure($"Failed to open subscription on '{relayUrl}'. {ex.Message}");
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
         catch (InvalidOperationException ex)
         {
-            throw new COMException(ex.Message, ex);
+            throw HResults.Exception(ex.Message, ex);
         }
         catch (Exception ex)
         {
-            throw new COMException($"Failed to open subscription on '{relayUrl}'.", ex);
+            throw HResults.WebSocketFailure($"Failed to open subscription on '{relayUrl}'.", ex);
         }
     }
 
@@ -325,14 +373,14 @@ public sealed class NostrClient : INostrClient
 
         if (eventPayload is null)
         {
-            throw new COMException("Event payload must not be null.", EPointer);
+            throw HResults.PointerRequired("Event payload must not be null.");
         }
 
         var session = GetSessionOrThrow(relayUrl);
 
         if (!session.WriteEnabled)
         {
-            throw new COMException($"Relay '{relayUrl}' is not configured for writing.", EInvalidarg);
+            throw HResults.InvalidArgument($"Relay '{relayUrl}' is not configured for writing.");
         }
 
         var signer = EnsureSigner();
@@ -347,11 +395,11 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
         catch (Exception ex)
         {
-            throw new COMException("Failed to prepare Nostr event payload.", ex);
+            throw HResults.Exception("Failed to prepare Nostr event payload.", ex);
         }
 
         try
@@ -383,20 +431,20 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
         catch (InvalidOperationException ex)
         {
-            throw new COMException(ex.Message, ex);
+            throw HResults.Exception(ex.Message, ex);
         }
         catch (Exception ex)
         {
-            throw new COMException("Failed to sign Nostr event payload.", ex);
+            throw HResults.Exception("Failed to sign Nostr event payload.", ex);
         }
 
         if (string.IsNullOrEmpty(normalizedEvent.Signature))
         {
-            throw new COMException("Event signature must not be empty after signing.", EInvalidarg);
+            throw HResults.InvalidArgument("Event signature must not be empty after signing.");
         }
 
         CopyEvent(normalizedEvent, eventPayload);
@@ -411,11 +459,11 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
         catch (Exception ex)
         {
-            throw new COMException("Failed to serialize Nostr event payload.", ex);
+            throw HResults.Exception("Failed to serialize Nostr event payload.", ex);
         }
 
         var eventDto = new NostrEventDto(
@@ -440,28 +488,28 @@ public sealed class NostrClient : INostrClient
                     ? $"Relay '{relayUrl}' rejected event '{ok.EventId}'."
                     : $"Relay '{relayUrl}' rejected event '{ok.EventId}': {ok.Message}";
 
-                throw new COMException(message, ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+                throw HResults.WebSocketFailure(message);
             }
         }
         catch (TimeoutException)
         {
-            throw new COMException($"Publishing event on '{relayUrl}' timed out.", ETimeout);
+            throw HResults.Timeout($"Publishing event on '{relayUrl}' timed out.");
         }
         catch (OperationCanceledException)
         {
-            throw new COMException($"Publishing event on '{relayUrl}' was canceled.", ETimeout);
+            throw HResults.Timeout($"Publishing event on '{relayUrl}' was canceled.");
         }
         catch (WebSocketException ex)
         {
-            throw new COMException($"Failed to publish event on '{relayUrl}'. {ex.Message}", ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+            throw HResults.WebSocketFailure($"Failed to publish event on '{relayUrl}'. {ex.Message}");
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
         catch (InvalidOperationException ex)
         {
-            throw new COMException(ex.Message, ex);
+            throw HResults.Exception(ex.Message, ex);
         }
         catch (COMException)
         {
@@ -469,7 +517,7 @@ public sealed class NostrClient : INostrClient
         }
         catch (Exception ex)
         {
-            throw new COMException($"Failed to publish event on '{relayUrl}'.", ex);
+            throw HResults.WebSocketFailure($"Failed to publish event on '{relayUrl}'.", ex);
         }
     }
 
@@ -479,7 +527,7 @@ public sealed class NostrClient : INostrClient
 
         if (authEvent is null)
         {
-            throw new COMException("Auth event must not be null.", EPointer);
+            throw HResults.PointerRequired("Auth event must not be null.");
         }
 
         var session = GetSessionOrThrow(relayUrl);
@@ -509,11 +557,11 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
         catch (Exception ex)
         {
-            throw new COMException("Failed to prepare authentication event.", ex);
+            throw HResults.Exception("Failed to prepare authentication event.", ex);
         }
 
         try
@@ -546,11 +594,11 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
         catch (Exception ex)
         {
-            throw new COMException("Failed to sign authentication event.", ex);
+            throw HResults.Exception("Failed to sign authentication event.", ex);
         }
 
         CopyEvent(normalizedEvent, authEvent);
@@ -565,7 +613,7 @@ public sealed class NostrClient : INostrClient
         }
         catch (Exception ex)
         {
-            throw new COMException("Failed to serialize authentication event.", ex);
+            throw HResults.Exception("Failed to serialize authentication event.", ex);
         }
 
         var eventDto = new NostrEventDto(
@@ -587,28 +635,28 @@ public sealed class NostrClient : INostrClient
                     ? $"Relay '{relayUrl}' rejected authentication event."
                     : $"Relay '{relayUrl}' rejected authentication event: {ok.Message}";
 
-                throw new COMException(message, ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+                throw HResults.WebSocketFailure(message);
             }
         }
         catch (TimeoutException)
         {
-            throw new COMException($"Authentication on '{relayUrl}' timed out.", ETimeout);
+            throw HResults.Timeout($"Authentication on '{relayUrl}' timed out.");
         }
         catch (OperationCanceledException)
         {
-            throw new COMException($"Authentication on '{relayUrl}' was canceled.", ETimeout);
+            throw HResults.Timeout($"Authentication on '{relayUrl}' was canceled.");
         }
         catch (WebSocketException ex)
         {
-            throw new COMException($"Failed to authenticate on '{relayUrl}'. {ex.Message}", ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+            throw HResults.WebSocketFailure($"Failed to authenticate on '{relayUrl}'. {ex.Message}");
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
         catch (InvalidOperationException ex)
         {
-            throw new COMException(ex.Message, ex);
+            throw HResults.Exception(ex.Message, ex);
         }
         catch (COMException)
         {
@@ -616,7 +664,7 @@ public sealed class NostrClient : INostrClient
         }
         catch (Exception ex)
         {
-            throw new COMException($"Failed to authenticate on '{relayUrl}'.", ex);
+            throw HResults.WebSocketFailure($"Failed to authenticate on '{relayUrl}'.", ex);
         }
     }
 
@@ -631,11 +679,11 @@ public sealed class NostrClient : INostrClient
         }
         catch (HttpRequestException ex)
         {
-            throw new COMException($"Failed to refresh NIP-11 metadata for '{relayUrl}'. {ex.Message}", ComErrorCodes.E_NOSTR_WEBSOCKET_ERROR);
+            throw HResults.WebSocketFailure($"Failed to refresh NIP-11 metadata for '{relayUrl}'. {ex.Message}");
         }
         catch (Exception ex)
         {
-            throw new COMException($"Failed to refresh NIP-11 metadata for '{relayUrl}'.", ex);
+            throw HResults.WebSocketFailure($"Failed to refresh NIP-11 metadata for '{relayUrl}'.", ex);
         }
     }
 
@@ -651,6 +699,8 @@ public sealed class NostrClient : INostrClient
 
     private NostrClientResources EnsureResources()
     {
+        EnsureNotDisposed();
+
         lock (_syncRoot)
         {
             EnsureInitializedUnsafe();
@@ -664,7 +714,7 @@ public sealed class NostrClient : INostrClient
         {
             if (_signer is null)
             {
-                throw new COMException("Signer must be configured via SetSigner before publishing events.", ComErrorCodes.E_NOSTR_SIGNER_MISSING);
+                throw HResults.SignerMissing("Signer must be configured via SetSigner before publishing events.");
             }
 
             return _signer;
@@ -675,7 +725,7 @@ public sealed class NostrClient : INostrClient
     {
         if (!_initialized || _resources is null)
         {
-            throw new COMException("NostrClient.Initialize must be called before use.", ComErrorCodes.E_NOSTR_NOT_INITIALIZED);
+            throw HResults.NotInitialized("NostrClient.Initialize must be called before use.");
         }
     }
 
@@ -683,7 +733,7 @@ public sealed class NostrClient : INostrClient
     {
         if (string.IsNullOrWhiteSpace(relayUrl))
         {
-            throw new COMException("Relay URL must not be null or whitespace.", EInvalidarg);
+            throw HResults.InvalidArgument("Relay URL must not be null or whitespace.");
         }
 
         Uri relayUri;
@@ -693,7 +743,7 @@ public sealed class NostrClient : INostrClient
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
 
         var key = RelayUriUtilities.GetSessionKey(relayUri);
@@ -705,7 +755,7 @@ public sealed class NostrClient : INostrClient
             }
         }
 
-        throw new COMException($"Relay '{relayUrl}' is not registered.", ComErrorCodes.E_NOSTR_RELAY_NOT_CONNECTED);
+        throw HResults.RelayNotConnected($"Relay '{relayUrl}' is not registered.");
     }
 
     private static string GenerateSubscriptionId()
@@ -1347,8 +1397,6 @@ public sealed class NostrClient : INostrClient
 [ClassInterface(ClassInterfaceType.None)]
 public sealed class NostrRelaySession : INostrRelaySession
 {
-    private const int EInvalidarg = unchecked((int)0x80070057);
-    private const int EPointer = unchecked((int)0x80004003);
 
     private const string QueueOverflowClosedReason = "Subscription queue overflow.";
 
@@ -1412,7 +1460,7 @@ public sealed class NostrRelaySession : INostrRelaySession
     {
         if (_disposed)
         {
-            throw new ObjectDisposedException(nameof(NostrRelaySession));
+            throw HResults.ObjectDisposed("NostrRelaySession has been disposed.");
         }
     }
 
@@ -1510,7 +1558,7 @@ public sealed class NostrRelaySession : INostrRelaySession
     {
         if (descriptor is null)
         {
-            throw new COMException("Descriptor must not be null.", EPointer);
+            throw HResults.PointerRequired("Descriptor must not be null.");
         }
 
         Uri incomingUri;
@@ -1520,7 +1568,7 @@ public sealed class NostrRelaySession : INostrRelaySession
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
 
         var canonical = RelayUriUtilities.ToCanonicalString(incomingUri);
@@ -1528,7 +1576,7 @@ public sealed class NostrRelaySession : INostrRelaySession
         {
             if (!string.Equals(canonical, _descriptor.Url, StringComparison.OrdinalIgnoreCase))
             {
-                throw new COMException("Relay URL mismatch when updating policy.", EInvalidarg);
+                throw HResults.InvalidArgument("Relay URL mismatch when updating policy.");
             }
 
             _descriptor.ReadEnabled = descriptor.ReadEnabled;
@@ -1968,6 +2016,15 @@ public sealed class NostrRelaySession : INostrRelaySession
         foreach (var subscription in snapshot)
         {
             subscription.HandleSessionClosed(reason);
+        }
+    }
+
+    internal void MarkDisposed()
+    {
+        lock (_stateLock)
+        {
+            _shutdownRequested = true;
+            _disposed = true;
         }
     }
 
@@ -2712,7 +2769,6 @@ internal readonly struct SubscriptionConfiguration
 [ClassInterface(ClassInterfaceType.None)]
 public sealed class NostrSubscription : INostrSubscription
 {
-    private const int EInvalidarg = unchecked((int)0x80070057);
 
     private readonly NostrRelaySession _session;
     private readonly string _relayUrl;
@@ -2785,7 +2841,7 @@ public sealed class NostrSubscription : INostrSubscription
     {
         if (filters is null)
         {
-            throw new COMException("Filters must not be null.", EInvalidarg);
+            throw HResults.InvalidArgument("Filters must not be null.");
         }
 
         var normalized = CloneFilters(filters);
@@ -2797,7 +2853,7 @@ public sealed class NostrSubscription : INostrSubscription
         }
         catch (ArgumentException ex)
         {
-            throw new COMException(ex.Message, EInvalidarg);
+            throw HResults.InvalidArgument(ex.Message, ex);
         }
 
         IReadOnlyList<NostrFilterDto> requestFilters;

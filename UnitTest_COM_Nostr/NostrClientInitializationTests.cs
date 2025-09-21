@@ -36,6 +36,8 @@ public sealed class NostrClientInitializationTests
             Assert.IsNotNull(connection);
             Assert.IsInstanceOfType(connection, typeof(ClientWebSocketConnection));
         }
+
+        client.Dispose();
     }
 
     [TestMethod]
@@ -65,6 +67,8 @@ public sealed class NostrClientInitializationTests
             Assert.AreEqual("ExampleClient/2.0", userAgent);
             Assert.AreEqual(TimeSpan.FromSeconds(45), httpClient.Timeout);
         }
+
+        client.Dispose();
     }
 
     [TestMethod]
@@ -76,8 +80,8 @@ public sealed class NostrClientInitializationTests
         };
 
         var client = new NostrClient();
-        var exception = Assert.ThrowsException<COMException>(() => client.Initialize(options));
-        Assert.AreEqual(unchecked((int)0x80040154), exception.ErrorCode);
+        var exception = AssertComException(() => client.Initialize(options));
+        Assert.AreEqual(HResults.E_CLASSNOTREGISTERED, exception.ErrorCode);
     }
 
     [TestMethod]
@@ -89,8 +93,8 @@ public sealed class NostrClientInitializationTests
         };
 
         var client = new NostrClient();
-        var exception = Assert.ThrowsException<COMException>(() => client.Initialize(options));
-        Assert.AreEqual(unchecked((int)0x80070057), exception.ErrorCode);
+        var exception = AssertComException(() => client.Initialize(options));
+        Assert.AreEqual(HResults.E_INVALIDARG, exception.ErrorCode);
     }
 
     [TestMethod]
@@ -102,7 +106,54 @@ public sealed class NostrClientInitializationTests
         };
 
         var client = new NostrClient();
-        var exception = Assert.ThrowsException<COMException>(() => client.Initialize(options));
-        Assert.AreEqual(unchecked((int)0x80070057), exception.ErrorCode);
+        var exception = AssertComException(() => client.Initialize(options));
+        Assert.AreEqual(HResults.E_INVALIDARG, exception.ErrorCode);
     }
+
+    [TestMethod]
+    public void Initialize_Twice_ThrowsAlreadyInitialized()
+    {
+        var client = new NostrClient();
+        client.Initialize(null!);
+
+        try
+        {
+            var exception = AssertComException(() => client.Initialize(null!));
+            Assert.AreEqual(HResults.E_NOSTR_ALREADY_INITIALIZED, exception.ErrorCode);
+        }
+        finally
+        {
+            client.Dispose();
+        }
+    }
+
+    [TestMethod]
+    public void ReuseAfterDispose_ThrowsObjectDisposed()
+    {
+        var client = new NostrClient();
+        client.Initialize(null!);
+        client.Dispose();
+
+        var initException = AssertComException(() => client.Initialize(null!));
+        Assert.AreEqual(HResults.E_NOSTR_OBJECT_DISPOSED, initException.ErrorCode);
+
+        var hasRelayException = AssertComException(() => client.HasRelay("wss://example.com"));
+        Assert.AreEqual(HResults.E_NOSTR_OBJECT_DISPOSED, hasRelayException.ErrorCode);
+    }
+
+    private static COMException AssertComException(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (COMException ex)
+        {
+            return ex;
+        }
+
+        Assert.Fail("Expected COMException to be thrown.");
+        throw new InvalidOperationException("Unreachable");
+    }
+
 }

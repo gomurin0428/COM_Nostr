@@ -11,7 +11,7 @@
 | `COM_Nostr/Contracts/DataContracts.cs` | COM で公開するイベント、フィルタ、オプション等の DTO クラス群を定義し、`SubscriptionOptions.QueueOverflowStrategy` を追加。 |
 | `COM_Nostr/Contracts/Enums.cs` | リレー/サブスクリプション状態に加え、`QueueOverflowStrategy` 列挙体を提供。 |
 | `COM_Nostr/Contracts/Interfaces.cs` | INostrClient など COM インターフェイス群のメソッド／プロパティ契約を宣言。 |
-| `COM_Nostr/Contracts/NostrClient.cs` | `Initialize`/`RespondAuth` に加え、`QueueOverflowStrategy` による購読バックプレッシャー制御、自動再接続＆REQ 再送、`Dispose` によるリソース解放を実装。 |
+| `COM_Nostr/Contracts/NostrClient.cs` | `Initialize`/`RespondAuth`/`Dispose` を含む COM 実装本体。`HResults` を介した HRESULT マッピング、二重 Initialize ガード、クライアント破棄時のセッション掃除を実装。 |
 | `COM_Nostr/Contracts/NostrSigner.cs` | 環境変数の秘密鍵で Schnorr 署名とイベントID計算を行う COM 実装クラス。 |
 | `COM_Nostr/Internal/ClientRuntimeOptions.cs` | Initialize で正規化したタイムアウトや User-Agent を保持する内部設定モデル。 |
 | `COM_Nostr/Internal/ClientWebSocketConnection.cs` | `System.Net.WebSockets.ClientWebSocket` を `IWebSocketConnection` にラップする実装。 |
@@ -23,7 +23,7 @@
 | `COM_Nostr/Internal/NostrProtocolModels.cs` | EVENT/REQ/OK/NOTICE/EOSE/CLOSED/AUTH 向け内部 DTO (AuthChallenge など) を定義する補助クラス群。 |
 | `COM_Nostr/Internal/WebSocketFactoryResolver.cs` | ProgID 解析とファクトリ生成・検証を担当するユーティリティ。 |
 | `COM_Nostr/Internal/BackoffPolicy.cs` | 再接続時の指数バックオフ遅延を計算する内部ユーティリティ。 |
-| `COM_Nostr/Internal/ComErrorCodes.cs` | 公開 API で使用するカスタム HRESULT (`E_NOSTR_SIGNER_MISSING` などに加え `E_NOSTR_OBJECT_DISPOSED`) を定義。 |
+| `COM_Nostr/Internal/HResults.cs` | 公開 API で使用するカスタム HRESULT と `COMException` ヘルパー (`InvalidArgument`/`WebSocketFailure` など) を集約。 |
 | `COM_Nostr/Internal/NostrHttpClient.cs` | NIP-11 メタデータ取得とコンテンツ種別チェックを行う HTTP ラッパー。 |
 | `COM_Nostr/Internal/NostrRelayInformation.cs` | NIP-11 応答の JSON とサポート NIP 配列を保持する DTO。 |
 | `COM_Nostr/Internal/RelayUriUtilities.cs` | リレー URL の正規化と NIP-11 エンドポイント構築を行うヘルパー。 |
@@ -31,7 +31,7 @@
 | `LICENSE.txt` | MIT License テンプレート本文。 |
 | `UnitTest_COM_Nostr/MSTestSettings.cs` | MSTest のメソッド単位並列実行を有効化するアセンブリ属性を宣言。 |
 | `UnitTest_COM_Nostr/Test1.cs` | NostrSigner の署名生成と検証動作を確認する MSTest テストケース群。 |
-| `UnitTest_COM_Nostr/NostrClientInitializationTests.cs` | NostrClient.Initialize の構成と入力検証を確認する MSTest ケース。 |
+| `UnitTest_COM_Nostr/NostrClientInitializationTests.cs` | Initialize の正規化／異常系に加え、二重 Initialize と Dispose 後再利用の境界テストを含む MSTest ケース。 |
 | `UnitTest_COM_Nostr/NostrRelaySessionTests.cs` | docker で strfry リレーを起動し RelaySession の接続と NIP-11 取得を検証する MSTest。 |
 | `UnitTest_COM_Nostr/NostrSubscriptionTests.cs` | docker strfry を用いた購読テスト。EOSE/KeepAlive のほか、キュー overflow (`DropOldest`/`Throw`) とリレー再起動後の自動再接続を検証。 |
 | `UnitTest_COM_Nostr/NostrPublishEventTests.cs` | docker strfry を用いた EVENT 送信の署名成功ケースと署名不正時の NOTICE/COMException を検証する MSTest。 |

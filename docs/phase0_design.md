@@ -60,7 +60,7 @@
 | タイムアウト (`PublishEvent` 応答待ち) | `COMException` (`HRESULT_FROM_WIN32(ERROR_TIMEOUT)`) | `0x800705B4` |
 
 - すべての公開メソッドで例外を捕捉し、内部ログへ書き出した後に適切な HRESULT へ変換するヘルパー (`ComErrorMapper`) を用意する。
-- カスタム HRESULT (`0x88990001`/`0x88990002`) は `public const int` として `ComErrorCodes` クラスに定義し、README.md にも記載する。
+- カスタム HRESULT (`0x88990001`/`0x88990002`) は `public const int` として `HResults` クラスに定義し、README.md にも記載する。
 
 ## 7. ログと診断
 - `INostrLogger` (メソッド: `LogDebug`, `LogInfo`, `LogWarn`, `LogError`) を内部向けに定義し、既定は `NullLogger`。必要に応じ `Initialize` で DI 可能なフックを追加予定 (フェーズ1以降)。
@@ -73,7 +73,7 @@
 3. `NostrProtocolSerializer` によるメッセージ変換ロジックと単体テスト。
 4. `RelaySession` の状態遷移実装、および NIP-11 取得 (`HttpClient` + JSON 解析)。
 5. `Subscription` 管理 (`AutoRequeryWindowSeconds`、`KeepAlive` 等) とテスト基盤 (docker strfry) の準備。
-6. 例外マッピングと `ComErrorCodes` 定義、README.md の更新。
+6. 例外マッピングと `HResults` 定義、README.md の更新。
 
 ---
 - 本メモはフェーズ0終了時点の設計方針であり、後続フェーズで詳細設計が変わる場合は本ファイルと README.md を同時に更新する。
