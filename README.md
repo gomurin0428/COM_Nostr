@@ -43,6 +43,8 @@
 - `RelayDescriptor` : `Url`, `ReadEnabled`, `WriteEnabled`, `Preferred`, `Metadata` (NIP-65)。
 - `SubscriptionOptions` : `KeepAlive` (既定 true), `AutoRequeryWindowSeconds` (欠損補完用), `MaxQueueLength`。
 - `AuthChallenge` : `RelayUrl`, `Challenge`, `ExpiresAt`。
+- `ClientOptions` : `WebSocketFactoryProgId` (BSTR), `UserAgent` (BSTR), `ConnectTimeoutSeconds` / `SendTimeoutSeconds` / `ReceiveTimeoutSeconds` (VARIANT; 秒単位, `null` で未設定)。
+- `NostrOkResult` : `Success` (VARIANT_BOOL), `EventId` (BSTR), `Message` (BSTR)。
 
 ## インターフェイス詳細
 ### INostrClient
@@ -58,7 +60,7 @@
 - `SAFEARRAY(BSTR) ListRelays()` : 登録済みリレー URL を列挙。
 
 ### INostrRelaySession
-- プロパティ: `Url`, `State` (`Disconnected`/`Connecting`/`Connected`/`Faulted`), `LastOkResult`, `SupportedNips` (`SAFEARRAY(LONG)`), `WriteEnabled`, `ReadEnabled`。
+- プロパティ: `Url`, `State` (`Disconnected`/`Connecting`/`Connected`/`Faulted`), `LastOkResult` (NostrOkResult), `SupportedNips` (`SAFEARRAY(LONG)`), `WriteEnabled`, `ReadEnabled`。
 - メソッド: `void Reconnect()`, `void Close()`, `RelayDescriptor GetDescriptor()`, `void UpdatePolicy([in] RelayDescriptor descriptor)`。
 
 ### INostrSubscription
@@ -113,3 +115,5 @@
 - 署名 (secp256k1 Schnorr) は外部ライブラリへ委譲し、COM 境界ではプレーンな hex 文字列を受け渡す。
 - タイムスタンプは `double` で扱い、丸めによるハッシュ不一致を避けるため整数秒へ切り捨ててから署名計算を行う。
 - マルチスレッド COM を想定し、購読通知は `IConnectionPoint` 経由でマルシャリング。
+
+
