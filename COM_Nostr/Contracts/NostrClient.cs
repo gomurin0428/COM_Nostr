@@ -1,5 +1,10 @@
 using System;
+using System.Globalization;
+using System.Net;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Threading;
+using COM_Nostr.Internal;
 
 namespace COM_Nostr.Contracts;
 
@@ -9,9 +14,83 @@ namespace COM_Nostr.Contracts;
 [ProgId("COM_Nostr.NostrClient")]
 public sealed class NostrClient : INostrClient
 {
+    private const string DefaultUserAgent = "COM_Nostr/1.0";
+    private const int EInvalidarg = unchecked((int)0x80070057);
+
+    private readonly object _syncRoot = new();
+
+    private NostrClientResources? _resources;
+    private SynchronizationContext? _callbackContext;
+    private bool _initialized;
+
+    internal bool IsInitialized
+    {
+        get
+        {
+            lock (_syncRoot)
+            {
+                return _initialized;
+            }
+        }
+    }
+
+    internal NostrClientResources? CurrentResources
+    {
+        get
+        {
+            lock (_syncRoot)
+            {
+                return _resources;
+            }
+        }
+    }
+
+    internal SynchronizationContext? CallbackContext
+    {
+        get
+        {
+            lock (_syncRoot)
+            {
+                return _callbackContext;
+            }
+        }
+    }
+
     public void Initialize(ClientOptions options)
     {
-        throw new NotImplementedException();
+        var capturedContext = SynchronizationContext.Current;
+
+        try
+        {
+            var runtimeOptions = BuildRuntimeOptions(options);
+            var httpClientFactory = CreateHttpClientFactory(runtimeOptions);
+            var webSocketFactory = WebSocketFactoryResolver.Create(runtimeOptions);
+            var serializer = new NostrJsonSerializer();
+            var resources = new NostrClientResources(runtimeOptions, httpClientFactory, webSocketFactory, serializer);
+
+            lock (_syncRoot)
+            {
+                _resources = resources;
+                _callbackContext = capturedContext;
+                _initialized = true;
+            }
+        }
+        catch (COMException)
+        {
+            throw;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new COMException(ex.Message, EInvalidarg);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new COMException(ex.Message, ex);
+        }
+        catch (Exception ex)
+        {
+            throw new COMException("Failed to initialize NostrClient.", ex);
+        }
     }
 
     public void SetSigner(INostrSigner signer)
@@ -57,6 +136,179 @@ public sealed class NostrClient : INostrClient
     public string[] ListRelays()
     {
         throw new NotImplementedException();
+    }
+
+    private static ClientRuntimeOptions BuildRuntimeOptions(ClientOptions? options)
+    {
+        var connectTimeout = ConvertToPositiveTimeSpan(options?.ConnectTimeoutSeconds, nameof(ClientOptions.ConnectTimeoutSeconds));
+        var sendTimeout = ConvertToPositiveTimeSpan(options?.SendTimeoutSeconds, nameof(ClientOptions.SendTimeoutSeconds));
+        var receiveTimeout = ConvertToPositiveTimeSpan(options?.ReceiveTimeoutSeconds, nameof(ClientOptions.ReceiveTimeoutSeconds));
+        var userAgent = DetermineUserAgent(options?.UserAgent);
+        var progId = NormalizeText(options?.WebSocketFactoryProgId);
+
+        return new ClientRuntimeOptions
+        {
+            ConnectTimeout = connectTimeout,
+            SendTimeout = sendTimeout,
+            ReceiveTimeout = receiveTimeout,
+            UserAgent = userAgent,
+            WebSocketFactoryProgId = progId
+        };
+    }
+
+    private static TimeSpan? ConvertToPositiveTimeSpan(object? value, string propertyName)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        var seconds = ExtractSeconds(value, propertyName);
+        if (!seconds.HasValue)
+        {
+            return null;
+        }
+
+        var numeric = seconds.Value;
+        if (double.IsNaN(numeric) || double.IsInfinity(numeric))
+        {
+            throw new ArgumentOutOfRangeException(propertyName, "Timeout seconds must be a finite value.");
+        }
+
+        if (numeric <= 0)
+        {
+            throw new ArgumentOutOfRangeException(propertyName, "Timeout seconds must be greater than zero.");
+        }
+
+        if (numeric > TimeSpan.MaxValue.TotalSeconds)
+        {
+            throw new ArgumentOutOfRangeException(propertyName, "Timeout seconds exceed supported range.");
+        }
+
+        return TimeSpan.FromSeconds(numeric);
+    }
+
+    private static double? ExtractSeconds(object value, string propertyName)
+    {
+        switch (value)
+        {
+            case double d:
+                return d;
+            case float f:
+                return f;
+            case decimal m:
+                return (double)m;
+            case int i:
+                return i;
+            case long l:
+                return l;
+            case short s:
+                return s;
+            case byte b:
+                return b;
+            case uint ui:
+                return ui;
+            case ulong ul:
+                if (ul > long.MaxValue)
+                {
+                    throw new ArgumentOutOfRangeException(propertyName, "Timeout seconds exceed supported range.");
+                }
+                return ul;
+            case string text:
+                var trimmed = text.Trim();
+                if (trimmed.Length == 0)
+                {
+                    return null;
+                }
+
+                if (!double.TryParse(trimmed, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var parsed))
+                {
+                    throw new ArgumentException($"ClientOptions.{propertyName} must be numeric seconds.", propertyName);
+                }
+
+                return parsed;
+        }
+
+        if (value is IConvertible convertible)
+        {
+            try
+            {
+                return convertible.ToDouble(CultureInfo.InvariantCulture);
+            }
+            catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+            {
+                throw new ArgumentException($"ClientOptions.{propertyName} must be numeric seconds.", propertyName);
+            }
+        }
+
+        throw new ArgumentException($"ClientOptions.{propertyName} must be numeric seconds.", propertyName);
+    }
+
+    private static string DetermineUserAgent(string? userAgent)
+    {
+        var normalized = NormalizeText(userAgent);
+        var result = string.IsNullOrEmpty(normalized) ? DefaultUserAgent : normalized;
+        ValidateUserAgent(result);
+        return result;
+    }
+
+    private static string? NormalizeText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim();
+    }
+
+    private static void ValidateUserAgent(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            throw new ArgumentException("ClientOptions.UserAgent must not be empty after normalization.", nameof(ClientOptions.UserAgent));
+        }
+
+        for (var i = 0; i < value.Length; i++)
+        {
+            if (char.IsControl(value[i]))
+            {
+                throw new ArgumentException("ClientOptions.UserAgent must not contain control characters.", nameof(ClientOptions.UserAgent));
+            }
+        }
+    }
+
+    private static Func<HttpClient> CreateHttpClientFactory(ClientRuntimeOptions options)
+    {
+        return () =>
+        {
+            var handler = new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
+                UseCookies = false
+            };
+
+            var client = new HttpClient(handler, disposeHandler: true);
+            if (!string.IsNullOrEmpty(options.UserAgent))
+            {
+                try
+                {
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd(options.UserAgent);
+                }
+                catch (FormatException ex)
+                {
+                    client.Dispose();
+                    throw new ArgumentException("ClientOptions.UserAgent is not a valid HTTP User-Agent string.", nameof(ClientOptions.UserAgent), ex);
+                }
+            }
+
+            if (options.ReceiveTimeout.HasValue)
+            {
+                client.Timeout = options.ReceiveTimeout.Value;
+            }
+
+            return client;
+        };
     }
 }
 

@@ -44,7 +44,7 @@
 - `RelayDescriptor` : `Url`, `ReadEnabled`, `WriteEnabled`, `Preferred`, `Metadata` (NIP-65)。
 - `SubscriptionOptions` : `KeepAlive` (既定 true), `AutoRequeryWindowSeconds` (欠損補完用), `MaxQueueLength`。
 - `AuthChallenge` : `RelayUrl`, `Challenge`, `ExpiresAt`。
-- `ClientOptions` : `WebSocketFactoryProgId` (BSTR), `UserAgent` (BSTR), `ConnectTimeoutSeconds` / `SendTimeoutSeconds` / `ReceiveTimeoutSeconds` (VARIANT; 秒単位, `null` で未設定)。
+- `ClientOptions` : `WebSocketFactoryProgId` (BSTR; ProgID が指す型は `COM_Nostr.Internal.IWebSocketFactory` を実装するか `ClientWebSocket` 派生インスタンスを返す必要がある), `UserAgent` (BSTR; 未指定時は `COM_Nostr/1.0` を適用), `ConnectTimeoutSeconds` / `SendTimeoutSeconds` / `ReceiveTimeoutSeconds` (VARIANT; 正の秒数。数値/文字列いずれも可)。
 - `NostrOkResult` : `Success` (VARIANT_BOOL), `EventId` (BSTR), `Message` (BSTR)。
 
 ## インターフェイス詳細
@@ -97,6 +97,11 @@
 - **署名と AUTH**: `PublishEvent` と `RespondAuth` では `INostrSigner` を必須とし、未設定時は `E_NOSTR_SIGNER_MISSING` を返す。
 - **HTTP/NIP-11**: `NostrHttpClient` がカスタム `UserAgent` とタイムアウトを反映し、NIP-11 の JSON を `RelayDescriptor.Metadata` に格納する。
 - **ログ**: 内部 `INostrLogger` を導入し、重要イベントと例外を記録する。外部公開は行わない。
+
+### WebSocket ファクトリ差し替え
+- `ClientOptions.WebSocketFactoryProgId` で指定する ProgID は、COM 生成した型が `COM_Nostr.Internal.IWebSocketFactory` を実装するか `System.Net.WebSockets.ClientWebSocket` 派生インスタンスを返す必要があります。
+- `IWebSocketFactory.Create()` は `IWebSocketConnection` もしくは `ClientWebSocket` を返却し、`NostrClient` が `User-Agent` 設定と接続処理を引き継ぎます。
+- ファクトリが `null` やサポート対象外の型を返した場合は `COMException (E_FAIL)` を送出し、既定実装へはフォールバックしません。
 
 ## 例外と HRESULT
 | 定数 | 値 | シナリオ |
