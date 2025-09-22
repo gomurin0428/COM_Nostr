@@ -206,6 +206,7 @@ finally {
 4. 登録解除は `regsvr32.exe /u /s "...\COM_Nostr.comhost.dll"` を実行します。旧来の `regasm` (`COM_Nostr.dll`) は .NET 8 の comhost では利用しない点に注意してください。
 ### Type Library (TLB) の生成と配布
 - .NET の comhost はビルド時に TLB を自動生成しないため、VBA などの早期バインディングで参照する場合は手動でエクスポートする必要があります。
+- IDL 定義は `COM_Nostr/COM_Nostr.idl` に整理済み。tlbexp や手動登録時の型整合性確認に利用できる。
 - 64bit 環境では `"$env:SystemRoot\Microsoft.NET\Framework64\v4.0.30319\tlbexp.exe" "<リポジトリパス>\COM_Nostr\COM_Nostr\bin\Release\net8.0-windows\COM_Nostr.dll" /out:COM_Nostr.tlb` を実行し、`COM_Nostr.tlb` を生成します。
 - 生成した `COM_Nostr.tlb` を MSI に含める場合は `Setup_COM_Nostr` の "ファイル システム" エディターで `アプリケーション フォルダー` に追加し、プロパティ `Register` を `vsdrfTypeLibRegister` に設定すると、インストール時に TypeLib が登録されます。
 - 手動登録で利用する場合は、`COM_Nostr.comhost.dll` を登録したフォルダーに `COM_Nostr.tlb` を配置し、Excel から「参照設定」でファイルを直接指定するか、`regtlibv12.exe COM_Nostr.tlb` で TypeLib を登録してください。
