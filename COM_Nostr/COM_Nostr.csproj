@@ -7,6 +7,7 @@
     <ComVisible>true</ComVisible>
     <EnableComHosting>true</EnableComHosting>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>

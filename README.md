@@ -169,16 +169,16 @@
 #### Setup_COM_Nostr プロジェクト構成手順
 1. Visual Studio で `COM_Nostr.sln` を開き、構成を `Release|Any CPU` に合わせます。
 2. `COM_Nostr` プロジェクトをビルドし、`COM_Nostr.comhost.dll` を含む最新の成果物を生成します。
-3. `Setup_COM_Nostr` プロジェクトを開き、「ファイル システム」エディターの `アプリケーション フォルダー` を選択します。
-4. `アプリケーション フォルダー` を右クリックし「プロジェクトの出力の追加」を選択、`Primary output from COM_Nostr (Active)` を追加します。追加後、プロパティ `Register` を `vsdrpDoNotRegister` に変更して `regasm` ベースの登録を無効化します。
-5. 同じ `アプリケーション フォルダー` に Release ビルド成果物から次のファイルを追加します。
+3. `Setup_COM_Nostr` プロジェクトのプロパティで `TargetPlatform` を `x64` に変更し、64bit Office/VBA から参照可能な MSI を生成する設定にします (32bit Office を併用する場合は別途 x86 ビルドが必要)。
+4. 「ファイル システム」エディターの `アプリケーション フォルダー` を選択します。
+5. `アプリケーション フォルダー` を右クリックし「プロジェクトの出力の追加」を選択、`Primary output from COM_Nostr (Active)` を追加します。追加後、プロパティ `Register` を `vsdrpDoNotRegister` に変更して `regasm` ベースの登録を無効化します。
+6. 同じ `アプリケーション フォルダー` に Release ビルド成果物から次のファイルを追加します。
    - `COM_Nostr.comhost.dll` (プロパティ `Register` = `vsdrfCOMSelfReg`, `Vital` = `True`)
    - `COM_Nostr.dll`
    - `COM_Nostr.deps.json`
    - `COM_Nostr.runtimeconfig.json`
    - `NBitcoin.Secp256k1.dll`
-6. 製品情報 (`Manufacturer`, `ProductVersion` など) を必要に応じて更新します。`ProductVersion` を変更した場合は Visual Studio が新しい `ProductCode` を生成するよう保存時のダイアログに従ってください。
-
+7. 製品情報 (`Manufacturer`, `ProductVersion` など) を必要に応じて更新します。`ProductVersion` を変更した場合は Visual Studio が新しい `ProductCode` を生成するよう保存時のダイアログに従ってください。
 #### MSI のビルドとインストール
 1. Visual Studio のビルド構成を `Release` にしたまま、メニューの「ビルド」→「ソリューションのビルド」または `Setup_COM_Nostr` の「ビルド」を実行します。
 2. 正常終了すると `Setup_COM_Nostr\Release\Setup_COM_Nostr.msi` が生成されます。配布時は同フォルダー内の CAB/Setup.exe を含め全ファイルをまとめて提供してください。
@@ -187,12 +187,37 @@
 
 ### 手動登録 (開発・デバッグ用)
 1. `dotnet build COM_Nostr.sln -c Release` を実行して Release ビルドを生成します。
-2. 管理者権限の PowerShell で `regsvr32.exe /s "<リポジトリパス>\COM_Nostr\COM_Nostr\bin\Release\net8.0-windows\COM_Nostr.comhost.dll"` を実行し、COM を登録します。
-3. Excel や PowerShell (`New-Object -ComObject COM_Nostr.NostrClient`) で ProgID が作成できるか確認します。
+2. 管理者権限の 64bit Windows PowerShell (`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`) で `C:\Windows\System32\regsvr32.exe /s "<リポジトリパス>\COM_Nostr\COM_Nostr\bin\Release\net8.0-windows\COM_Nostr.comhost.dll"` を実行し、COM を登録します。32bit PowerShell (`SysWOW64`) で登録すると 64bit クライアントから参照できません。
+3. Excel 64bit や Windows PowerShell 5.1 (64bit) で `New-Object -ComObject COM_Nostr.NostrClient` を実行し、ProgID が作成できるか確認します。32bit ホストでは `REGDB_E_CLASSNOTREG` になります。PowerShell 7 (`pwsh`) は .NET 9 ランタイムを先に読み込むため、0x800080A5 が発生する場合があります。
+   - ProgID の代わりに CLSID `{7d3091fe-ca18-49ba-835c-012991076660}` を直接指定して動作確認する場合は、64bit Windows PowerShell で次のスクリプトを利用できます。
+
+```powershell
+$clsid = '{7d3091fe-ca18-49ba-835c-012991076660}'
+$type = [type]::GetTypeFromCLSID($clsid)
+$client = [Activator]::CreateInstance($type)
+try {
+    $client.Initialize($null)  # 必要に応じてメソッドを呼び出す
+}
+finally {
+    if ($client -ne $null) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($client) | Out-Null }
+}
+```
+   - CLSID で生成する場合も 32bit プロセスからは同様に `REGDB_E_CLASSNOTREG` となります。
 4. 登録解除は `regsvr32.exe /u /s "...\COM_Nostr.comhost.dll"` を実行します。旧来の `regasm` (`COM_Nostr.dll`) は .NET 8 の comhost では利用しない点に注意してください。
+### Type Library (TLB) の生成と配布
+- .NET の comhost はビルド時に TLB を自動生成しないため、VBA などの早期バインディングで参照する場合は手動でエクスポートする必要があります。
+- 64bit 環境では `"$env:SystemRoot\Microsoft.NET\Framework64\v4.0.30319\tlbexp.exe" "<リポジトリパス>\COM_Nostr\COM_Nostr\bin\Release\net8.0-windows\COM_Nostr.dll" /out:COM_Nostr.tlb` を実行し、`COM_Nostr.tlb` を生成します。
+- 生成した `COM_Nostr.tlb` を MSI に含める場合は `Setup_COM_Nostr` の "ファイル システム" エディターで `アプリケーション フォルダー` に追加し、プロパティ `Register` を `vsdrfTypeLibRegister` に設定すると、インストール時に TypeLib が登録されます。
+- 手動登録で利用する場合は、`COM_Nostr.comhost.dll` を登録したフォルダーに `COM_Nostr.tlb` を配置し、Excel から「参照設定」でファイルを直接指定するか、`regtlibv12.exe COM_Nostr.tlb` で TypeLib を登録してください。
+
 ## ドキュメント
 - 設計メモ: `docs/phase0_design.md`
 - 仕様要約: `Nostrプロトコルの現行仕様まとめ.docx`
 - テキストファイル一覧: `TEXT_FILE_OVERVIEW.md`
+
+
+
+
+
 
 

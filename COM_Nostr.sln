@@ -12,19 +12,34 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{D6B33996-1F50-4931-B778-ACF35494C74A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D6B33996-1F50-4931-B778-ACF35494C74A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6B33996-1F50-4931-B778-ACF35494C74A}.Debug|x64.ActiveCfg = Debug|x64
+		{D6B33996-1F50-4931-B778-ACF35494C74A}.Debug|x64.Build.0 = Debug|x64
 		{D6B33996-1F50-4931-B778-ACF35494C74A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D6B33996-1F50-4931-B778-ACF35494C74A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6B33996-1F50-4931-B778-ACF35494C74A}.Release|x64.ActiveCfg = Release|x64
+		{D6B33996-1F50-4931-B778-ACF35494C74A}.Release|x64.Build.0 = Release|x64
 		{7021A99F-ED5E-414E-B463-31C593795C3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7021A99F-ED5E-414E-B463-31C593795C3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7021A99F-ED5E-414E-B463-31C593795C3B}.Debug|x64.ActiveCfg = Debug|x64
+		{7021A99F-ED5E-414E-B463-31C593795C3B}.Debug|x64.Build.0 = Debug|x64
 		{7021A99F-ED5E-414E-B463-31C593795C3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7021A99F-ED5E-414E-B463-31C593795C3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7021A99F-ED5E-414E-B463-31C593795C3B}.Release|x64.ActiveCfg = Release|x64
+		{7021A99F-ED5E-414E-B463-31C593795C3B}.Release|x64.Build.0 = Release|x64
 		{03B2855B-00D1-FF90-942C-0185971EB2BE}.Debug|Any CPU.ActiveCfg = Debug
+		{03B2855B-00D1-FF90-942C-0185971EB2BE}.Debug|x64.ActiveCfg = Debug
+		{03B2855B-00D1-FF90-942C-0185971EB2BE}.Debug|x64.Build.0 = Debug
 		{03B2855B-00D1-FF90-942C-0185971EB2BE}.Release|Any CPU.ActiveCfg = Release
+		{03B2855B-00D1-FF90-942C-0185971EB2BE}.Release|Any CPU.Build.0 = Release
+		{03B2855B-00D1-FF90-942C-0185971EB2BE}.Release|x64.ActiveCfg = Release
+		{03B2855B-00D1-FF90-942C-0185971EB2BE}.Release|x64.Build.0 = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
