@@ -43,6 +43,7 @@
 | `ImplementationPlan.md` | COM_Nostr 実装フェーズとテスト戦略をまとめた計画ドキュメント (完了タスクはチェックボックスで管理)。 |
 | `CHANGELOG.md` | リリース履歴（初版 0.1.0 の主要トピック）を記録。 |
 | `docs/phase0_design.md` | フェーズ0で決定したクラス構成、WebSocket/コールバック方針、例外マッピングの詳細設計メモ。 |
+| `docs/installer_regsvr32_plan.md` | MSIでcomhost DLLをregsvr32登録するためのCustom Action追加方針と検証計画。 |
 | `TROUBLESHOOTING.md` | QueueOverflowStrategy、docker strfry 再起動時の注意点、PowerShell 7 の 0x800080A5、32bit/64bit 登録ミスマッチ、.NET 8 アセンブリに対する tlbexp 失敗時の対処法をまとめたトラブルシュートメモ。 |
 
 > ※ バイナリ形式の `Nostrプロトコルの現行仕様まとめ.docx` は対象外としています。
