@@ -1,0 +1,18 @@
+﻿// COM_Nostr_Native.idl : COM_Nostr_Native の IDL ソース
+//
+
+// このファイルは、タイプ ライブラリ ([!output SAFE_IDL_NAME].tlb) およびマーシャリング コードを
+// タイプ ライブラリ (COMNostrNative.tlb) とマーシャリング コードを生成します。
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+	uuid(73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087),
+	version(1.0),
+]
+library COMNostrNativeLib
+{
+	importlib("stdole2.tlb");
+};
+
