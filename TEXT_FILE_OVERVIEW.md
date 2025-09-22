@@ -9,6 +9,7 @@
 | `COM_Nostr.sln` | 本体ライブラリとテストプロジェクトを含む Visual Studio ソリューション定義。 |
 | `COM_Nostr/COM_Nostr.csproj` | COM 対応の .NET 8 プロジェクト設定と NBitcoin.Secp256k1 依存パッケージに加え、生成済み `COM_Nostr.tlb` をアセンブリへ埋め込む設定。 |
 | `COM_Nostr/COM_Nostr.idl` | COM 公開インターフェイスと列挙体、DTO コクラスをまとめた IDL 定義。タイプライブラリ生成時の基準にする。 |
+| `COM_Nostr_Native/COMNostrNative.idl` | C++ ATL 版 `COM_Nostr_Native` のタイプライブラリ定義。COM_Nostr と同じインターフェイス/IID/CLSID を再宣言して移植を支える。 |
 | `COM_Nostr/Contracts/DataContracts.cs` | COM で公開するイベント、フィルタ、オプション等の DTO クラス群を定義し、`SubscriptionOptions.QueueOverflowStrategy` を追加。 |
 | `COM_Nostr/Contracts/Enums.cs` | リレー/サブスクリプション状態に加え、`QueueOverflowStrategy` 列挙体を提供。 |
 | `COM_Nostr/Contracts/Interfaces.cs` | INostrClient など COM インターフェイス群のメソッド／プロパティ契約を宣言。 |

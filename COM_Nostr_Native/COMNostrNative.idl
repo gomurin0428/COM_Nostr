@@ -1,18 +1,245 @@
-﻿// COM_Nostr_Native.idl : COM_Nostr_Native の IDL ソース
-//
-
-// このファイルは、タイプ ライブラリ ([!output SAFE_IDL_NAME].tlb) およびマーシャリング コードを
-// タイプ ライブラリ (COMNostrNative.tlb) とマーシャリング コードを生成します。
+// COM_Nostr_Native.idl : COM_Nostr_Native の IDL ソース
+// COM_Nostr で公開している COM インターフェイスを ATL ベースでも同等に提供する。
 
 import "oaidl.idl";
 import "ocidl.idl";
 
 [
-	uuid(73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087),
-	version(1.0),
+    uuid(73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087),
+    version(1.0),
+    helpstring("COM_Nostr_Native Type Library")
 ]
 library COMNostrNativeLib
 {
-	importlib("stdole2.tlb");
-};
+    importlib("stdole2.tlb");
 
+    typedef [v1_enum] enum RelaySessionState
+    {
+        RelaySessionState_Disconnected = 0,
+        RelaySessionState_Connecting = 1,
+        RelaySessionState_Connected = 2,
+        RelaySessionState_Faulted = 3
+    } RelaySessionState;
+
+    typedef [v1_enum] enum SubscriptionStatus
+    {
+        SubscriptionStatus_Pending = 0,
+        SubscriptionStatus_Active = 1,
+        SubscriptionStatus_Draining = 2,
+        SubscriptionStatus_Closed = 3
+    } SubscriptionStatus;
+
+    typedef [v1_enum] enum QueueOverflowStrategy
+    {
+        QueueOverflowStrategy_DropOldest = 0,
+        QueueOverflowStrategy_Throw = 1
+    } QueueOverflowStrategy;
+
+    dispinterface INostrEventCallback;
+    dispinterface INostrAuthCallback;
+    dispinterface INostrSigner;
+    interface INostrRelaySession;
+    interface INostrSubscription;
+    interface INostrClient;
+
+    [
+        uuid(fa6b2b97-da84-47d7-9395-3be07d18bb8a)
+    ]
+    dispinterface INostrEventCallback
+    {
+        properties:
+        methods:
+            [id(1)] void OnEvent(BSTR relayUrl, IDispatch* eventPayload);
+            [id(2)] void OnEndOfStoredEvents(BSTR relayUrl, BSTR subscriptionId);
+            [id(3)] void OnNotice(BSTR relayUrl, BSTR message);
+            [id(4)] void OnClosed(BSTR relayUrl, BSTR subscriptionId, BSTR reason);
+    };
+
+    [
+        uuid(0168a3e9-0da9-4fbe-92c7-6fb10c12c536)
+    ]
+    dispinterface INostrAuthCallback
+    {
+        properties:
+        methods:
+            [id(1)] void OnAuthRequired(IDispatch* challenge);
+            [id(2)] void OnAuthSucceeded(BSTR relayUrl);
+            [id(3)] void OnAuthFailed(BSTR relayUrl, BSTR reason);
+    };
+
+    [
+        uuid(0c458d3c-2e65-4a90-9f64-7809e944adbc)
+    ]
+    dispinterface INostrSigner
+    {
+        properties:
+        methods:
+            [id(1)] BSTR Sign(IDispatch* draft);
+            [id(2)] BSTR GetPublicKey();
+    };
+
+    [
+        object,
+        uuid(2d375c22-fda2-4286-bcbe-81fdf2f245b5),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface INostrRelaySession : IDispatch
+    {
+        [id(1), propget] HRESULT Url([out, retval] BSTR* value);
+        [id(2), propget] HRESULT State([out, retval] RelaySessionState* value);
+        [id(3), propget] HRESULT LastOkResult([out, retval] IDispatch** value);
+        [id(4), propget] HRESULT SupportedNips([out, retval] SAFEARRAY(LONG)* value);
+        [id(5), propget] HRESULT WriteEnabled([out, retval] VARIANT_BOOL* value);
+        [id(6), propget] HRESULT ReadEnabled([out, retval] VARIANT_BOOL* value);
+        [id(7)] HRESULT Reconnect();
+        [id(8)] HRESULT Close();
+        [id(9)] HRESULT GetDescriptor([out, retval] IDispatch** value);
+        [id(10)] HRESULT UpdatePolicy([in] IDispatch* descriptor);
+    };
+
+    [
+        object,
+        uuid(143205c5-f229-4e2e-a47c-25c34a7f040d),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface INostrSubscription : IDispatch
+    {
+        [id(1), propget] HRESULT Id([out, retval] BSTR* value);
+        [id(2), propget] HRESULT Status([out, retval] SubscriptionStatus* value);
+        [id(3), propget] HRESULT Filters([out, retval] SAFEARRAY(IDispatch*)* value);
+        [id(4)] HRESULT UpdateFilters([in] SAFEARRAY(IDispatch*) filters);
+        [id(5)] HRESULT Close();
+    };
+
+    [
+        object,
+        uuid(75f24149-8cbf-4f9c-9482-ec8374fdc7b5),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface INostrClient : IDispatch
+    {
+        [id(1)] HRESULT Initialize([in] IDispatch* options);
+        [id(2)] HRESULT SetSigner([in] INostrSigner* signer);
+        [id(3)] HRESULT ConnectRelay([in] IDispatch* descriptor, [in] INostrAuthCallback* authCallback, [out, retval] INostrRelaySession** session);
+        [id(4)] HRESULT DisconnectRelay([in] BSTR relayUrl);
+        [id(5)] HRESULT HasRelay([in] BSTR relayUrl, [out, retval] VARIANT_BOOL* hasRelay);
+        [id(6)] HRESULT OpenSubscription([in] BSTR relayUrl, [in] SAFEARRAY(IDispatch*) filters, [in] INostrEventCallback* callback, [in] IDispatch* options, [out, retval] INostrSubscription** subscription);
+        [id(7)] HRESULT PublishEvent([in] BSTR relayUrl, [in] IDispatch* eventPayload);
+        [id(8)] HRESULT RespondAuth([in] BSTR relayUrl, [in] IDispatch* authEvent);
+        [id(9)] HRESULT RefreshRelayInfo([in] BSTR relayUrl);
+        [id(10)] HRESULT ListRelays([out, retval] SAFEARRAY(BSTR)* relayUrls);
+    };
+
+    [
+        uuid(7d3091fe-ca18-49ba-835c-012991076660)
+    ]
+    coclass NostrClient
+    {
+        [default] interface INostrClient;
+    };
+
+    [
+        uuid(e53e9b56-da8d-4064-8df6-5563708f65a5)
+    ]
+    coclass NostrRelaySession
+    {
+        [default] interface INostrRelaySession;
+    };
+
+    [
+        uuid(175bd625-18d9-42bd-b75a-0642abf029b4)
+    ]
+    coclass NostrSubscription
+    {
+        [default] interface INostrSubscription;
+    };
+
+    [
+        uuid(ae9df2b5-8650-4a51-8bb2-1df35a48a6ec)
+    ]
+    coclass NostrSigner
+    {
+        [default] dispinterface INostrSigner;
+    };
+
+    [
+        uuid(56e23422-5e99-4be6-a29d-fb60eccb6559)
+    ]
+    coclass NostrEvent
+    {
+        [default] IDispatch;
+    };
+
+    [
+        uuid(ed57aa18-b9fe-4861-a6e9-66d68b9a0c49)
+    ]
+    coclass NostrFilter
+    {
+        [default] IDispatch;
+    };
+
+    [
+        uuid(4ed88857-740f-451e-8d1f-5959c89f31a2)
+    ]
+    coclass NostrTagQuery
+    {
+        [default] IDispatch;
+    };
+
+    [
+        uuid(43910586-5980-4cbc-8936-ea8d1d2cb584)
+    ]
+    coclass RelayDescriptor
+    {
+        [default] IDispatch;
+    };
+
+    [
+        uuid(b8522064-312e-4ce0-b4c5-e7d59a76d073)
+    ]
+    coclass SubscriptionOptions
+    {
+        [default] IDispatch;
+    };
+
+    [
+        uuid(83822390-3a93-4edb-ba46-2f2dc960d08d)
+    ]
+    coclass AuthChallenge
+    {
+        [default] IDispatch;
+    };
+
+    [
+        uuid(38c8b451-af80-41d6-ae98-36ab672412e7)
+    ]
+    coclass NostrEventDraft
+    {
+        [default] IDispatch;
+    };
+
+    [
+        uuid(21831b74-c106-4809-b47d-1bec57addc7c)
+    ]
+    coclass ClientOptions
+    {
+        [default] IDispatch;
+    };
+
+    [
+        uuid(9b7fce0f-14c5-43ec-97f0-b968f479f3a1)
+    ]
+    coclass NostrOkResult
+    {
+        [default] IDispatch;
+    };
+};
