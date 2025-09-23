@@ -12,6 +12,16 @@
 | `COM_Nostr/COM_Nostr.csproj` | COM 対応の .NET 8 プロジェクト設定と NBitcoin.Secp256k1 依存パッケージに加え、生成済み `COM_Nostr.tlb` をアセンブリへ埋め込む設定。 |
 | `COM_Nostr/COM_Nostr.idl` | COM 公開インターフェイスと列挙体、DTO コクラスをまとめた IDL 定義。タイプライブラリ生成時の基準にする。 |
 | `COM_Nostr_Native/COMNostrNative.idl` | C++ ATL 版 `COM_Nostr_Native` のタイプライブラリ定義。COM_Nostr と同じインターフェイス/IID/CLSID を再宣言して移植を支える。 |
+| `COM_Nostr_Native/include/NostrHResults.h` | .NET 版 HResults.cs 相当の HRESULT 定数を C++ 向けに再宣言し、WinHTTP 失敗を `E_NOSTR_WEBSOCKET_ERROR` 等へマッピングするヘルパー。 |
+| `COM_Nostr_Native/include/runtime/ClientRuntimeOptions.h` | 接続/送信/受信タイムアウトや User-Agent、WebSocket ProgID を保持するランタイム設定オブジェクト。 |
+| `COM_Nostr_Native/include/runtime/INativeWebSocket.h` | ネイティブ WebSocket 抽象インターフェイス。接続・送受信・Close/Abort API を定義する。 |
+| `COM_Nostr_Native/include/runtime/NativeClientResources.h` | HTTP/WebSocket/シリアライザのファクトリを束ねるリソース管理クラス。 |
+| `COM_Nostr_Native/include/runtime/NativeHttpClient.h` | WinHTTP 経由で NIP-11 JSON を取得し、supported_nips を抽出する HTTP クライアント。 |
+| `COM_Nostr_Native/include/runtime/WinHttpWebSocket.h` | WinHTTP の WebSocket ハンドルをラップし、Threadpool ワーカーで受信キューを管理する実装。 |
+| `COM_Nostr_Native/src/runtime/ClientRuntimeOptions.cpp` | ランタイム設定のタイムアウト・UserAgent を保持する `ClientRuntimeOptions` の実装。 |
+| `COM_Nostr_Native/src/runtime/NativeClientResources.cpp` | HTTP/WebSocket/シリアライザのファクトリを束ねる `NativeClientResources` の実装。 |
+| `COM_Nostr_Native/src/runtime/NativeHttpClient.cpp` | WinHTTP で NIP-11 を取得し、Content-Type 検証と supported_nips 抽出を行う HTTP クライアント実装。 |
+| `COM_Nostr_Native/src/runtime/WinHttpWebSocket.cpp` | WinHTTP WebSocket API をラップし、Threadpool ワーカーで受信キューを管理するネイティブ WebSocket 実装。 |
 | `COM_Nostr_NativePS/Stub.cpp` | COM_Nostr_NativePS の Proxy/Stubs DLL を最小実装し、Automation 専用構成でもエクスポート関数が登録・解除処理に対応できるよう担保するスタブ。 |
 | `COM_Nostr/Contracts/DataContracts.cs` | COM で公開するイベント、フィルタ、オプション等の DTO クラス群を定義し、`SubscriptionOptions.QueueOverflowStrategy` を追加。 |
 | `COM_Nostr/Contracts/Enums.cs` | リレー/サブスクリプション状態に加え、`QueueOverflowStrategy` 列挙体を提供。 |
@@ -45,6 +55,7 @@
 | `UnitTest_COM_Nostr/StrfryRelayHost.cs` | テストごとに strfry コンテナを起動・停止し、`RestartAsync` でリレー再起動シナリオも提供する補助ユーティリティ。 |
 | `UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj` | テストプロジェクトのターゲットフレームワークや参照設定を定義。 |
 | `tests/native/NostrNativeTests/SerializerTests.cpp` | C++ 側の JSON シリアライザと DTO 相互運用を検証する MSTest (ネイティブ) 。AUTH expiresAt などの境界を確認する。 |
+| `tests/native/NostrNativeTests/WebSocketHandshakeTests.cpp` | docker の strfry リレーを起動し、`WinHttpWebSocket` で REQ→EOSE を受信するまでのハンドシェイクを検証するネイティブ MSTest。 |
 | `tests/native/NostrNativeTests/AtlModuleStub.cpp` | ネイティブ単体テスト用に ATL モジュール (`_AtlModule`) を簡易定義し、COM オブジェクト生成が例外なく動作するようにするスタブ。 |
 | `packages/native/nlohmann_json/include/nlohmann/json.hpp` | nlohmann/json 3.11.3 の単一ヘッダー。Native プロジェクトのプリコンパイルヘッダー経由で JSON 変換に利用。 |
 | `ImplementationPlan.md` | COM_Nostr_Native 移植のフェーズ別計画とテスト戦略をまとめた最新の実装ロードマップ。 |
@@ -55,6 +66,6 @@
 | `docs/native_port_overview.md` | C++/ATL への移植対象コンポーネント、NIP 要件、Native モジュール設計、JSON サンプルを整理したサマリー。 |
 | `docs/native_sequence_diagrams.md` | Relay 接続/購読と EVENT・AUTH フローの Mermaid シーケンス図をまとめた資料。 |
 | `external/libsecp256k1/README.port.md` | サブモジュールのビルドオプション (ECDH/Schnorrsig、静的リンク) と `native-deps.ps1` の利用手順を記載した移植メモ。 |
-| `TROUBLESHOOTING.md` | QueueOverflowStrategy、docker strfry 再起動時の注意点、PowerShell 7 の 0x800080A5、32bit/64bit 登録ミスマッチ、.NET 8 アセンブリに対する tlbexp 失敗時の対処法をまとめたトラブルシュートメモ。 |
+| `TROUBLESHOOTING.md` | QueueOverflowStrategy、docker strfry 再起動時の注意点、Docker デーモン未起動時にネイティブ WebSocket テストが長時間ブロックする件の対処、PowerShell 7 の 0x800080A5、32bit/64bit 登録ミスマッチ、.NET 8 アセンブリに対する tlbexp 失敗時の対処法をまとめたトラブルシュートメモ。 |
 
 > ※ バイナリ形式の `Nostrプロトコルの現行仕様まとめ.docx` は対象外としています。

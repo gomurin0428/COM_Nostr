@@ -103,6 +103,7 @@
 
 ## 設計方針 (フェーズ0)
 - **WebSocket**: 既定は `ClientWebSocket` をラップした `ClientWebSocketConnection` を使用。`ClientOptions.WebSocketFactoryProgId` が指定された場合のみ外部 COM ファクトリを生成し、失敗時にフォールバックしない。
+- **Native ランタイム**: WinHTTP ベースの `NativeHttpClient` と `WinHttpWebSocket` を実装し、`Sec-WebSocket-Protocol: nostr` を明示してハンドシェイクする。NIP-11 取得と WebSocket 接続はいずれも WinHTTP のタイムアウト設定を共有し、失敗時は `E_NOSTR_WEBSOCKET_ERROR` にマッピングする。
 - **接続制御**: `RelaySession` が `Disconnected → Connecting → Connected/Faulted` を管理し、NIP-11 応答を `RelayDescriptor.Metadata`/`SupportedNips` にキャッシュする。
 - **サブスクリプション**: `Subscription` が REQ/EOSE/CLOSED のステートマシンを実装。購読 ID は 32 バイト乱数の hex 表現。`AutoRequeryWindowSeconds` で `since` を自動調整。
 - **COM コールバック**: `ComCallbackDispatcher` が `SynchronizationContext.Post` もしくは内部 STA ワーカースレッドを利用し、コールバック実行順序を直列化する。

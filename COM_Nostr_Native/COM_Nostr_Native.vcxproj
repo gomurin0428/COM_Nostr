@@ -93,7 +93,7 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -116,6 +116,7 @@
       <ModuleDefinitionFile>.\COM_Nostr_Native.def</ModuleDefinitionFile>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RegisterOutput>true</RegisterOutput>
     </Link>
   </ItemDefinitionGroup>
@@ -129,7 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -151,6 +152,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <ModuleDefinitionFile>.\COM_Nostr_Native.def</ModuleDefinitionFile>
+      <AdditionalDependencies>winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RegisterOutput>true</RegisterOutput>
     </Link>
   </ItemDefinitionGroup>
@@ -164,7 +166,7 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -185,6 +187,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <ModuleDefinitionFile>.\COM_Nostr_Native.def</ModuleDefinitionFile>
+      <AdditionalDependencies>winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RegisterOutput>true</RegisterOutput>
     </Link>
   </ItemDefinitionGroup>
@@ -198,7 +201,7 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -222,6 +225,7 @@
       <ModuleDefinitionFile>.\COM_Nostr_Native.def</ModuleDefinitionFile>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RegisterOutput>true</RegisterOutput>
     </Link>
   </ItemDefinitionGroup>
@@ -230,6 +234,12 @@
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="include\ComValueHelpers.h" />
+    <ClInclude Include="include\NostrHResults.h" />
+    <ClInclude Include="include\runtime\ClientRuntimeOptions.h" />
+    <ClInclude Include="include\runtime\INativeWebSocket.h" />
+    <ClInclude Include="include\runtime\NativeClientResources.h" />
+    <ClInclude Include="include\runtime\NativeHttpClient.h" />
+    <ClInclude Include="include\runtime\WinHttpWebSocket.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="src\dto\NostrDtoComObjects.h" />
@@ -269,6 +279,10 @@
     <ClCompile Include="src\dto\ComValueHelpers.cpp" />
     <ClCompile Include="src\dto\NostrDtoComObjects.cpp" />
     <ClCompile Include="src\serialization\NostrJsonSerializer.cpp" />
+    <ClCompile Include="src\runtime\ClientRuntimeOptions.cpp" />
+    <ClCompile Include="src\runtime\NativeClientResources.cpp" />
+    <ClCompile Include="src\runtime\NativeHttpClient.cpp" />
+    <ClCompile Include="src\runtime\WinHttpWebSocket.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

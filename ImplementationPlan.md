@@ -40,10 +40,10 @@
 - [x] 成果物: DTO クラス、UnitTest_COM_Nostrへ実装されたテストケース
 
 ### フェーズ3: ランタイム基盤 (HTTP/WebSocket/リソース管理) (5日)
-- WinHTTP を用いた `NativeHttpClient` を実装し、NIP-11 ドキュメント取得と JSON パースをサポート。
-- WebSocket 接続を抽象化する `INativeWebSocket` インターフェイスと `WinHttpWebSocket` 実装を作成。受信スレッドは `Threadpool` + `OVERLAPPED` を使用し、メッセージを安全にキューイングする。
-- `.NET` 版 `NostrClientResources` に合わせて `NativeClientResources` を作成し、HTTP/WebSocket/シリアライザ/タイマーのファクトリを保持。
-- 成果物: `src/runtime/NativeHttpClient.cpp`, `src/runtime/WinHttpWebSocket.cpp`, `tests/native/WebSocketHandshakeTests.cpp` (モックサーバーで接続確認)。
+- [x] WinHTTP を用いた `NativeHttpClient` を実装し、NIP-11 ドキュメント取得と JSON パースをサポート。
+- [x] WebSocket 接続を抽象化する `INativeWebSocket` インターフェイスと `WinHttpWebSocket` 実装を作成。受信スレッドは `Threadpool` + `OVERLAPPED` を使用し、メッセージを安全にキューイングする。
+- [x] `.NET` 版 `NostrClientResources` に合わせて `NativeClientResources` を作成し、HTTP/WebSocket/シリアライザ/タイマーのファクトリを保持。
+- [x] 成果物: `src/runtime/NativeHttpClient.cpp`, `src/runtime/WinHttpWebSocket.cpp`, `tests/native/WebSocketHandshakeTests.cpp` (strfry リレーを用いた接続確認)。
 
 ### フェーズ4: リレーセッション管理 (`INostrRelaySession`) (4日)
 - `NostrRelaySession` クラスを実装し、状態遷移 (`Disconnected`→`Connecting`→`Connected`/`Faulted`) を `std::atomic` と `CComAutoCriticalSection` で管理。
@@ -90,6 +90,7 @@
 - **C++ 単体テスト**: `tests/native` に GoogleTest を導入し、JSON 変換、バックオフ、署名検証、WebSocket ラッパーのモックテストを実装する。`ctest` 実行前に `cmake --build` で静的ライブラリとテストバイナリを生成する。
 - **MSTest (COM 経由統合)**: 既存の `UnitTest_COM_Nostr` をベースに共通ヘルパー (`StrfryRelayHost`, `SubscriptionAssertions`) を共有ライブラリ化し、Native 版向けに `UnitTest_COM_Nostr_Native` プロジェクトを作成。テストごとに `docker run --rm -it -p <動的ポート>:7777 -v "${hostPath}:/app/strfry-db" --name strfry_<test>` でリレーを起動し、テスト完了時に必ず `docker stop` で後始末する。
 - **シナリオカバレッジ**:
+  - WinHTTP ベースの `WinHttpWebSocket` を strfry コンテナに接続し、`REQ` → `EOSE` までを確認するハンドシェイクテスト (docker でリレーを新規起動し、テスト終了時に停止する)。
   - Initialize/Dispose の境界テスト (二重初期化、Dispose 後の呼び出しで `E_NOSTR_OBJECT_DISPOSED` を返すか)。
   - NIP-11 メタデータ取得と JSON パース。
   - REQ 発行→EOSE→CLOSE のライフサイクル。

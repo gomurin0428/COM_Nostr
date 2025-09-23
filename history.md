@@ -1,6 +1,7 @@
 # 作業履歴
 
 ## 2025-09-23
+- ネイティブ WebSocket ハンドシェイクテストが docker デーモン未起動時に長時間無言になる原因を調査し、TROUBLESHOOTING.md に対処手順を追記。
 - COM_Nostr_Native の IDL で `IDispatch` を既定インターフェイスに設定する際の構文エラーを修正し、x64 ビルドが通ることを確認。
 - COM_Nostr_NativePS に最小の `Stub.cpp` を追加し、自動生成ファイルに依存せずに DLL をリンクできるように変更。
 - ソリューション設定を更新して `COM_Nostr_NativePS` を Debug/Release | x64 ビルド対象に含め、全体ビルドを確認。
@@ -18,3 +19,6 @@
 - COM_Nostr_Native フェーズ2の成果物として `NostrJsonSerializer` の AUTH expiresAt パースを `expiresAt`/文字列形式に拡張し、`Variant` 安全配列や JSON 変換の単体テスト (`SerializerTests`) を強化。ATL 依存のない `Fake*Dispatch` スタブと `_AtlModule` スタブ (`AtlModuleStub.cpp`) を追加。
 - `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` および Release 構成でビルドを通し、`NostrNativeTests.vcxproj` も Debug|x64 でビルド。`vstest.console` を用いて `tests/native/NostrNativeTests/x64/Debug/NostrNativeTests.dll` の6件テストを成功確認。
 - ImplementationPlan.md をチェックボックス付き進捗に更新し、TEXT_FILE_OVERVIEW.md にネイティブテストの新規ファイル概要を追記。
+- WinHTTP ベースの `NativeHttpClient` と `WinHttpWebSocket` を実装し、`NativeClientResources` でファクトリを束ねた。プロジェクト設定に `winhttp.lib` と `src/runtime` ディレクトリを追加。
+- docker の strfry を動的ポートで起動する `WebSocketHandshakeTests` を追加し、REQ→EOSE の往復を確認するネイティブ MSTest を作成。テスト実行時には専用ボリュームディレクトリを生成して後片付けするようにした。
+- README/TROUBLESHOOTING/TEXT_FILE_OVERVIEW を更新し、WinHTTP ハンドシェイク要件 (`Sec-WebSocket-Protocol: nostr`) や新規ファイル概要を追記。

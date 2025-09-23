@@ -3,10 +3,13 @@
 - NostrClient は 1 度しか Initialize できません。2 回目以降は `E_NOSTR_ALREADY_INITIALIZED` が返るため、新しいインスタンスを生成してください。`Dispose()` 後に任意の API を呼び出すと `E_NOSTR_OBJECT_DISPOSED` が返るので、再利用せず破棄してください。
 - GUI 以外のホスト (PowerShell やサービス) で `SynchronizationContext` が捕捉できない場合、内部 STA スレッド上でコールバックが直列実行されます。コールバック内で長時間ブロックすると他の通知が詰まるため、必要なら `Task.Run` 等でオフロードしてください。
 - WinHTTP ベースの WebSocket 実装は permessage-deflate 等の拡張を受け付けず、圧縮必須のリレーでは `ERROR_WINHTTP_INVALID_SERVER_RESPONSE` を返す。Native 版では `HResults.WebSocketFailure` へ変換し、NOTICE へ「compression unsupported」などの説明を流すことで利用者が別リレーを選べるよう周知する。
+- strfry など Nostr リレーへ接続する際は `Sec-WebSocket-Protocol: nostr` を必ず送信する。ヘッダーが欠落すると WinHTTP が `ERROR_WINHTTP_INVALID_SERVER_RESPONSE` でハンドシェイクを中断するため、`WinHttpWebSocket` の Connect 失敗時はヘッダー設定と docker コンテナの起動状態を確認する。
+- `tests/native/NostrNativeTests/WebSocketHandshakeTests.cpp` は `docker run --rm -d ... dockurr/strfry` を呼び出してリレーを起動し、HTTP ポーリング (`waitForHttp`) を最大 20 回リトライする。Docker Desktop のデーモンが停止している場合、各リトライで WinHTTP の接続タイムアウト (現状 5 秒) を待つため、`vstest.console` が約 1～2 分無言のまま「ハング」しているように見える。テスト前に `docker ps` が成功することを確認するか、Docker が使えない環境では該当テストを除外するフィルターを設定する。
 - QueueOverflowStrategy を Throw に設定した状態で購読コールバックが長時間ブロックすると、Subscription queue overflow. で CLOSED になる。MaxQueueLength を十分に確保するか、DropOldest に切り替えてイベントを間引いてください。
 - Docker 上の strfry リレーを再起動するテスト (RestartAsync) を実行する際は、既存コンテナとポート競合しないことを確認してください。停止済みでも --rm オプションが動作しない環境では手動で docker stop が必要です。
 - RestartAsync は毎回コンテナ名を再生成するため、テストが異常終了した場合は docker ps -a で孤立した strfry-test-* を停止・削除してから再実行してください。
 - `build/native-deps.ps1` は Visual Studio 2022 の C++ ビルドツールと CMake が PATH に載っていることを前提とする。`cmake` や `ninja` が見つからない場合は「x64 Native Tools Command Prompt for VS 2022」などの開発者コマンドプロンプトから実行するか、`vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64` の出力でインストール有無を確認する。
+- WinHTTP API をリンクし忘れると `LNK2019: unresolved external symbol WinHttpWebSocket*` などのリンク エラーが出る。`COM_Nostr_Native.vcxproj` / `NostrNativeTests.vcxproj` の `<AdditionalDependencies>` に `winhttp.lib` が入っているか確認する。
 - `COM_Nostr_Native` の MIDL が `MIDL2025: ... near "IDispatch"` で停止する場合は、IDL 内の各 `coclass` で `[default] interface IDispatch;` のように `interface` キーワード付きで既定インターフェイスを宣言しているか確認し、修正後に `msbuild COM_Nostr_Native.vcxproj /t:Clean;Build /p:Configuration=Debug /p:Platform=x64` を実行する。
 - `COM_Nostr_NativePS` ビルドで "MIDL will not generate DLLDATA.C" が出た場合は、既存の生成済み `*_p.c`/`dlldata.c` を探す代わりに `Stub.cpp` が配置されているかを確認し、`msbuild COM_Nostr_NativePS.vcxproj /t:Clean;Build /p:Configuration=Debug /p:Platform=x64` を実行してスタブ DLL を再生成する。
 
