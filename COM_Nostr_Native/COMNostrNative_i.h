@@ -90,6 +90,69 @@ typedef interface INostrClient INostrClient;
 #endif 	/* __INostrClient_FWD_DEFINED__ */
 
 
+#ifndef __INostrEvent_FWD_DEFINED__
+#define __INostrEvent_FWD_DEFINED__
+typedef interface INostrEvent INostrEvent;
+
+#endif 	/* __INostrEvent_FWD_DEFINED__ */
+
+
+#ifndef __INostrFilter_FWD_DEFINED__
+#define __INostrFilter_FWD_DEFINED__
+typedef interface INostrFilter INostrFilter;
+
+#endif 	/* __INostrFilter_FWD_DEFINED__ */
+
+
+#ifndef __INostrTagQuery_FWD_DEFINED__
+#define __INostrTagQuery_FWD_DEFINED__
+typedef interface INostrTagQuery INostrTagQuery;
+
+#endif 	/* __INostrTagQuery_FWD_DEFINED__ */
+
+
+#ifndef __IRelayDescriptor_FWD_DEFINED__
+#define __IRelayDescriptor_FWD_DEFINED__
+typedef interface IRelayDescriptor IRelayDescriptor;
+
+#endif 	/* __IRelayDescriptor_FWD_DEFINED__ */
+
+
+#ifndef __ISubscriptionOptions_FWD_DEFINED__
+#define __ISubscriptionOptions_FWD_DEFINED__
+typedef interface ISubscriptionOptions ISubscriptionOptions;
+
+#endif 	/* __ISubscriptionOptions_FWD_DEFINED__ */
+
+
+#ifndef __IAuthChallenge_FWD_DEFINED__
+#define __IAuthChallenge_FWD_DEFINED__
+typedef interface IAuthChallenge IAuthChallenge;
+
+#endif 	/* __IAuthChallenge_FWD_DEFINED__ */
+
+
+#ifndef __INostrEventDraft_FWD_DEFINED__
+#define __INostrEventDraft_FWD_DEFINED__
+typedef interface INostrEventDraft INostrEventDraft;
+
+#endif 	/* __INostrEventDraft_FWD_DEFINED__ */
+
+
+#ifndef __IClientOptions_FWD_DEFINED__
+#define __IClientOptions_FWD_DEFINED__
+typedef interface IClientOptions IClientOptions;
+
+#endif 	/* __IClientOptions_FWD_DEFINED__ */
+
+
+#ifndef __INostrOkResult_FWD_DEFINED__
+#define __INostrOkResult_FWD_DEFINED__
+typedef interface INostrOkResult INostrOkResult;
+
+#endif 	/* __INostrOkResult_FWD_DEFINED__ */
+
+
 #ifndef __NostrClient_FWD_DEFINED__
 #define __NostrClient_FWD_DEFINED__
 
@@ -1328,6 +1391,2051 @@ EXTERN_C const IID IID_INostrClient;
 
 
 #endif 	/* __INostrClient_INTERFACE_DEFINED__ */
+
+
+#ifndef __INostrEvent_INTERFACE_DEFINED__
+#define __INostrEvent_INTERFACE_DEFINED__
+
+/* interface INostrEvent */
+/* [unique][oleautomation][nonextensible][dual][uuid][object] */ 
+
+
+EXTERN_C const IID IID_INostrEvent;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("b67fcdef-060a-48e2-aa7a-e005be256b4d")
+    INostrEvent : public IDispatch
+    {
+    public:
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Id( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Id( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_PublicKey( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_PublicKey( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_CreatedAt( 
+            /* [retval][out] */ DOUBLE *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_CreatedAt( 
+            /* [in] */ DOUBLE value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Kind( 
+            /* [retval][out] */ LONG *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Kind( 
+            /* [in] */ LONG value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Tags( 
+            /* [retval][out] */ SAFEARRAY * *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Tags( 
+            /* [in] */ SAFEARRAY * value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Content( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Content( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Signature( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Signature( 
+            /* [in] */ BSTR value) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct INostrEventVtbl
+    {
+        BEGIN_INTERFACE
+        
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            INostrEvent * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            INostrEvent * This);
+        
+        DECLSPEC_XFGVIRT(IUnknown, Release)
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            INostrEvent * This);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfoCount)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            INostrEvent * This,
+            /* [out] */ UINT *pctinfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfo)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            INostrEvent * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetIDsOfNames)
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            INostrEvent * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        DECLSPEC_XFGVIRT(IDispatch, Invoke)
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            INostrEvent * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, get_Id)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Id )( 
+            INostrEvent * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, put_Id)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Id )( 
+            INostrEvent * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, get_PublicKey)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_PublicKey )( 
+            INostrEvent * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, put_PublicKey)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_PublicKey )( 
+            INostrEvent * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, get_CreatedAt)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_CreatedAt )( 
+            INostrEvent * This,
+            /* [retval][out] */ DOUBLE *value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, put_CreatedAt)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_CreatedAt )( 
+            INostrEvent * This,
+            /* [in] */ DOUBLE value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, get_Kind)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Kind )( 
+            INostrEvent * This,
+            /* [retval][out] */ LONG *value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, put_Kind)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Kind )( 
+            INostrEvent * This,
+            /* [in] */ LONG value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, get_Tags)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Tags )( 
+            INostrEvent * This,
+            /* [retval][out] */ SAFEARRAY * *value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, put_Tags)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Tags )( 
+            INostrEvent * This,
+            /* [in] */ SAFEARRAY * value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, get_Content)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Content )( 
+            INostrEvent * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, put_Content)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Content )( 
+            INostrEvent * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, get_Signature)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Signature )( 
+            INostrEvent * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(INostrEvent, put_Signature)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Signature )( 
+            INostrEvent * This,
+            /* [in] */ BSTR value);
+        
+        END_INTERFACE
+    } INostrEventVtbl;
+
+    interface INostrEvent
+    {
+        CONST_VTBL struct INostrEventVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define INostrEvent_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define INostrEvent_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define INostrEvent_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define INostrEvent_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define INostrEvent_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define INostrEvent_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define INostrEvent_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define INostrEvent_get_Id(This,value)	\
+    ( (This)->lpVtbl -> get_Id(This,value) ) 
+
+#define INostrEvent_put_Id(This,value)	\
+    ( (This)->lpVtbl -> put_Id(This,value) ) 
+
+#define INostrEvent_get_PublicKey(This,value)	\
+    ( (This)->lpVtbl -> get_PublicKey(This,value) ) 
+
+#define INostrEvent_put_PublicKey(This,value)	\
+    ( (This)->lpVtbl -> put_PublicKey(This,value) ) 
+
+#define INostrEvent_get_CreatedAt(This,value)	\
+    ( (This)->lpVtbl -> get_CreatedAt(This,value) ) 
+
+#define INostrEvent_put_CreatedAt(This,value)	\
+    ( (This)->lpVtbl -> put_CreatedAt(This,value) ) 
+
+#define INostrEvent_get_Kind(This,value)	\
+    ( (This)->lpVtbl -> get_Kind(This,value) ) 
+
+#define INostrEvent_put_Kind(This,value)	\
+    ( (This)->lpVtbl -> put_Kind(This,value) ) 
+
+#define INostrEvent_get_Tags(This,value)	\
+    ( (This)->lpVtbl -> get_Tags(This,value) ) 
+
+#define INostrEvent_put_Tags(This,value)	\
+    ( (This)->lpVtbl -> put_Tags(This,value) ) 
+
+#define INostrEvent_get_Content(This,value)	\
+    ( (This)->lpVtbl -> get_Content(This,value) ) 
+
+#define INostrEvent_put_Content(This,value)	\
+    ( (This)->lpVtbl -> put_Content(This,value) ) 
+
+#define INostrEvent_get_Signature(This,value)	\
+    ( (This)->lpVtbl -> get_Signature(This,value) ) 
+
+#define INostrEvent_put_Signature(This,value)	\
+    ( (This)->lpVtbl -> put_Signature(This,value) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __INostrEvent_INTERFACE_DEFINED__ */
+
+
+#ifndef __INostrFilter_INTERFACE_DEFINED__
+#define __INostrFilter_INTERFACE_DEFINED__
+
+/* interface INostrFilter */
+/* [unique][oleautomation][nonextensible][dual][uuid][object] */ 
+
+
+EXTERN_C const IID IID_INostrFilter;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("735c552b-ea89-4811-adbe-ac5bfdcb30a2")
+    INostrFilter : public IDispatch
+    {
+    public:
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Ids( 
+            /* [retval][out] */ SAFEARRAY * *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Ids( 
+            /* [in] */ SAFEARRAY * value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Authors( 
+            /* [retval][out] */ SAFEARRAY * *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Authors( 
+            /* [in] */ SAFEARRAY * value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Kinds( 
+            /* [retval][out] */ SAFEARRAY * *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Kinds( 
+            /* [in] */ SAFEARRAY * value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Tags( 
+            /* [retval][out] */ SAFEARRAY * *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Tags( 
+            /* [in] */ SAFEARRAY * value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Since( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Since( 
+            /* [in] */ VARIANT value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Until( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Until( 
+            /* [in] */ VARIANT value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Limit( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Limit( 
+            /* [in] */ VARIANT value) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct INostrFilterVtbl
+    {
+        BEGIN_INTERFACE
+        
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            INostrFilter * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            INostrFilter * This);
+        
+        DECLSPEC_XFGVIRT(IUnknown, Release)
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            INostrFilter * This);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfoCount)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            INostrFilter * This,
+            /* [out] */ UINT *pctinfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfo)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            INostrFilter * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetIDsOfNames)
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            INostrFilter * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        DECLSPEC_XFGVIRT(IDispatch, Invoke)
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            INostrFilter * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, get_Ids)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Ids )( 
+            INostrFilter * This,
+            /* [retval][out] */ SAFEARRAY * *value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, put_Ids)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Ids )( 
+            INostrFilter * This,
+            /* [in] */ SAFEARRAY * value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, get_Authors)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Authors )( 
+            INostrFilter * This,
+            /* [retval][out] */ SAFEARRAY * *value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, put_Authors)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Authors )( 
+            INostrFilter * This,
+            /* [in] */ SAFEARRAY * value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, get_Kinds)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Kinds )( 
+            INostrFilter * This,
+            /* [retval][out] */ SAFEARRAY * *value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, put_Kinds)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Kinds )( 
+            INostrFilter * This,
+            /* [in] */ SAFEARRAY * value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, get_Tags)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Tags )( 
+            INostrFilter * This,
+            /* [retval][out] */ SAFEARRAY * *value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, put_Tags)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Tags )( 
+            INostrFilter * This,
+            /* [in] */ SAFEARRAY * value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, get_Since)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Since )( 
+            INostrFilter * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, put_Since)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Since )( 
+            INostrFilter * This,
+            /* [in] */ VARIANT value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, get_Until)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Until )( 
+            INostrFilter * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, put_Until)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Until )( 
+            INostrFilter * This,
+            /* [in] */ VARIANT value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, get_Limit)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Limit )( 
+            INostrFilter * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(INostrFilter, put_Limit)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Limit )( 
+            INostrFilter * This,
+            /* [in] */ VARIANT value);
+        
+        END_INTERFACE
+    } INostrFilterVtbl;
+
+    interface INostrFilter
+    {
+        CONST_VTBL struct INostrFilterVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define INostrFilter_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define INostrFilter_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define INostrFilter_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define INostrFilter_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define INostrFilter_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define INostrFilter_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define INostrFilter_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define INostrFilter_get_Ids(This,value)	\
+    ( (This)->lpVtbl -> get_Ids(This,value) ) 
+
+#define INostrFilter_put_Ids(This,value)	\
+    ( (This)->lpVtbl -> put_Ids(This,value) ) 
+
+#define INostrFilter_get_Authors(This,value)	\
+    ( (This)->lpVtbl -> get_Authors(This,value) ) 
+
+#define INostrFilter_put_Authors(This,value)	\
+    ( (This)->lpVtbl -> put_Authors(This,value) ) 
+
+#define INostrFilter_get_Kinds(This,value)	\
+    ( (This)->lpVtbl -> get_Kinds(This,value) ) 
+
+#define INostrFilter_put_Kinds(This,value)	\
+    ( (This)->lpVtbl -> put_Kinds(This,value) ) 
+
+#define INostrFilter_get_Tags(This,value)	\
+    ( (This)->lpVtbl -> get_Tags(This,value) ) 
+
+#define INostrFilter_put_Tags(This,value)	\
+    ( (This)->lpVtbl -> put_Tags(This,value) ) 
+
+#define INostrFilter_get_Since(This,value)	\
+    ( (This)->lpVtbl -> get_Since(This,value) ) 
+
+#define INostrFilter_put_Since(This,value)	\
+    ( (This)->lpVtbl -> put_Since(This,value) ) 
+
+#define INostrFilter_get_Until(This,value)	\
+    ( (This)->lpVtbl -> get_Until(This,value) ) 
+
+#define INostrFilter_put_Until(This,value)	\
+    ( (This)->lpVtbl -> put_Until(This,value) ) 
+
+#define INostrFilter_get_Limit(This,value)	\
+    ( (This)->lpVtbl -> get_Limit(This,value) ) 
+
+#define INostrFilter_put_Limit(This,value)	\
+    ( (This)->lpVtbl -> put_Limit(This,value) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __INostrFilter_INTERFACE_DEFINED__ */
+
+
+#ifndef __INostrTagQuery_INTERFACE_DEFINED__
+#define __INostrTagQuery_INTERFACE_DEFINED__
+
+/* interface INostrTagQuery */
+/* [unique][oleautomation][nonextensible][dual][uuid][object] */ 
+
+
+EXTERN_C const IID IID_INostrTagQuery;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("70aa92a3-62ea-4622-950c-1f20b187fead")
+    INostrTagQuery : public IDispatch
+    {
+    public:
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Label( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Label( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Values( 
+            /* [retval][out] */ SAFEARRAY * *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Values( 
+            /* [in] */ SAFEARRAY * value) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct INostrTagQueryVtbl
+    {
+        BEGIN_INTERFACE
+        
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            INostrTagQuery * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            INostrTagQuery * This);
+        
+        DECLSPEC_XFGVIRT(IUnknown, Release)
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            INostrTagQuery * This);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfoCount)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            INostrTagQuery * This,
+            /* [out] */ UINT *pctinfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfo)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            INostrTagQuery * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetIDsOfNames)
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            INostrTagQuery * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        DECLSPEC_XFGVIRT(IDispatch, Invoke)
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            INostrTagQuery * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        DECLSPEC_XFGVIRT(INostrTagQuery, get_Label)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Label )( 
+            INostrTagQuery * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(INostrTagQuery, put_Label)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Label )( 
+            INostrTagQuery * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(INostrTagQuery, get_Values)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Values )( 
+            INostrTagQuery * This,
+            /* [retval][out] */ SAFEARRAY * *value);
+        
+        DECLSPEC_XFGVIRT(INostrTagQuery, put_Values)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Values )( 
+            INostrTagQuery * This,
+            /* [in] */ SAFEARRAY * value);
+        
+        END_INTERFACE
+    } INostrTagQueryVtbl;
+
+    interface INostrTagQuery
+    {
+        CONST_VTBL struct INostrTagQueryVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define INostrTagQuery_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define INostrTagQuery_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define INostrTagQuery_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define INostrTagQuery_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define INostrTagQuery_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define INostrTagQuery_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define INostrTagQuery_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define INostrTagQuery_get_Label(This,value)	\
+    ( (This)->lpVtbl -> get_Label(This,value) ) 
+
+#define INostrTagQuery_put_Label(This,value)	\
+    ( (This)->lpVtbl -> put_Label(This,value) ) 
+
+#define INostrTagQuery_get_Values(This,value)	\
+    ( (This)->lpVtbl -> get_Values(This,value) ) 
+
+#define INostrTagQuery_put_Values(This,value)	\
+    ( (This)->lpVtbl -> put_Values(This,value) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __INostrTagQuery_INTERFACE_DEFINED__ */
+
+
+#ifndef __IRelayDescriptor_INTERFACE_DEFINED__
+#define __IRelayDescriptor_INTERFACE_DEFINED__
+
+/* interface IRelayDescriptor */
+/* [unique][oleautomation][nonextensible][dual][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IRelayDescriptor;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("84d3b9ea-fc37-44bf-9dec-e5b223e897c1")
+    IRelayDescriptor : public IDispatch
+    {
+    public:
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Url( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Url( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_ReadEnabled( 
+            /* [retval][out] */ VARIANT_BOOL *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_ReadEnabled( 
+            /* [in] */ VARIANT_BOOL value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_WriteEnabled( 
+            /* [retval][out] */ VARIANT_BOOL *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_WriteEnabled( 
+            /* [in] */ VARIANT_BOOL value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Preferred( 
+            /* [retval][out] */ VARIANT_BOOL *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Preferred( 
+            /* [in] */ VARIANT_BOOL value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Metadata( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Metadata( 
+            /* [in] */ VARIANT value) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IRelayDescriptorVtbl
+    {
+        BEGIN_INTERFACE
+        
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IRelayDescriptor * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IRelayDescriptor * This);
+        
+        DECLSPEC_XFGVIRT(IUnknown, Release)
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IRelayDescriptor * This);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfoCount)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            IRelayDescriptor * This,
+            /* [out] */ UINT *pctinfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfo)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            IRelayDescriptor * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetIDsOfNames)
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            IRelayDescriptor * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        DECLSPEC_XFGVIRT(IDispatch, Invoke)
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            IRelayDescriptor * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, get_Url)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Url )( 
+            IRelayDescriptor * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, put_Url)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Url )( 
+            IRelayDescriptor * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, get_ReadEnabled)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_ReadEnabled )( 
+            IRelayDescriptor * This,
+            /* [retval][out] */ VARIANT_BOOL *value);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, put_ReadEnabled)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_ReadEnabled )( 
+            IRelayDescriptor * This,
+            /* [in] */ VARIANT_BOOL value);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, get_WriteEnabled)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_WriteEnabled )( 
+            IRelayDescriptor * This,
+            /* [retval][out] */ VARIANT_BOOL *value);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, put_WriteEnabled)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_WriteEnabled )( 
+            IRelayDescriptor * This,
+            /* [in] */ VARIANT_BOOL value);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, get_Preferred)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Preferred )( 
+            IRelayDescriptor * This,
+            /* [retval][out] */ VARIANT_BOOL *value);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, put_Preferred)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Preferred )( 
+            IRelayDescriptor * This,
+            /* [in] */ VARIANT_BOOL value);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, get_Metadata)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Metadata )( 
+            IRelayDescriptor * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(IRelayDescriptor, put_Metadata)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Metadata )( 
+            IRelayDescriptor * This,
+            /* [in] */ VARIANT value);
+        
+        END_INTERFACE
+    } IRelayDescriptorVtbl;
+
+    interface IRelayDescriptor
+    {
+        CONST_VTBL struct IRelayDescriptorVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IRelayDescriptor_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IRelayDescriptor_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IRelayDescriptor_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IRelayDescriptor_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define IRelayDescriptor_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define IRelayDescriptor_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define IRelayDescriptor_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define IRelayDescriptor_get_Url(This,value)	\
+    ( (This)->lpVtbl -> get_Url(This,value) ) 
+
+#define IRelayDescriptor_put_Url(This,value)	\
+    ( (This)->lpVtbl -> put_Url(This,value) ) 
+
+#define IRelayDescriptor_get_ReadEnabled(This,value)	\
+    ( (This)->lpVtbl -> get_ReadEnabled(This,value) ) 
+
+#define IRelayDescriptor_put_ReadEnabled(This,value)	\
+    ( (This)->lpVtbl -> put_ReadEnabled(This,value) ) 
+
+#define IRelayDescriptor_get_WriteEnabled(This,value)	\
+    ( (This)->lpVtbl -> get_WriteEnabled(This,value) ) 
+
+#define IRelayDescriptor_put_WriteEnabled(This,value)	\
+    ( (This)->lpVtbl -> put_WriteEnabled(This,value) ) 
+
+#define IRelayDescriptor_get_Preferred(This,value)	\
+    ( (This)->lpVtbl -> get_Preferred(This,value) ) 
+
+#define IRelayDescriptor_put_Preferred(This,value)	\
+    ( (This)->lpVtbl -> put_Preferred(This,value) ) 
+
+#define IRelayDescriptor_get_Metadata(This,value)	\
+    ( (This)->lpVtbl -> get_Metadata(This,value) ) 
+
+#define IRelayDescriptor_put_Metadata(This,value)	\
+    ( (This)->lpVtbl -> put_Metadata(This,value) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __IRelayDescriptor_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISubscriptionOptions_INTERFACE_DEFINED__
+#define __ISubscriptionOptions_INTERFACE_DEFINED__
+
+/* interface ISubscriptionOptions */
+/* [unique][oleautomation][nonextensible][dual][uuid][object] */ 
+
+
+EXTERN_C const IID IID_ISubscriptionOptions;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("e00bff8d-81b7-4f09-8e43-5d4028aff887")
+    ISubscriptionOptions : public IDispatch
+    {
+    public:
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_KeepAlive( 
+            /* [retval][out] */ VARIANT_BOOL *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_KeepAlive( 
+            /* [in] */ VARIANT_BOOL value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_AutoRequeryWindowSeconds( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_AutoRequeryWindowSeconds( 
+            /* [in] */ VARIANT value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_MaxQueueLength( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_MaxQueueLength( 
+            /* [in] */ VARIANT value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_QueueOverflowStrategy( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_QueueOverflowStrategy( 
+            /* [in] */ VARIANT value) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct ISubscriptionOptionsVtbl
+    {
+        BEGIN_INTERFACE
+        
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            ISubscriptionOptions * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            ISubscriptionOptions * This);
+        
+        DECLSPEC_XFGVIRT(IUnknown, Release)
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            ISubscriptionOptions * This);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfoCount)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            ISubscriptionOptions * This,
+            /* [out] */ UINT *pctinfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfo)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            ISubscriptionOptions * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetIDsOfNames)
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            ISubscriptionOptions * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        DECLSPEC_XFGVIRT(IDispatch, Invoke)
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            ISubscriptionOptions * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        DECLSPEC_XFGVIRT(ISubscriptionOptions, get_KeepAlive)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_KeepAlive )( 
+            ISubscriptionOptions * This,
+            /* [retval][out] */ VARIANT_BOOL *value);
+        
+        DECLSPEC_XFGVIRT(ISubscriptionOptions, put_KeepAlive)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_KeepAlive )( 
+            ISubscriptionOptions * This,
+            /* [in] */ VARIANT_BOOL value);
+        
+        DECLSPEC_XFGVIRT(ISubscriptionOptions, get_AutoRequeryWindowSeconds)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_AutoRequeryWindowSeconds )( 
+            ISubscriptionOptions * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(ISubscriptionOptions, put_AutoRequeryWindowSeconds)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_AutoRequeryWindowSeconds )( 
+            ISubscriptionOptions * This,
+            /* [in] */ VARIANT value);
+        
+        DECLSPEC_XFGVIRT(ISubscriptionOptions, get_MaxQueueLength)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_MaxQueueLength )( 
+            ISubscriptionOptions * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(ISubscriptionOptions, put_MaxQueueLength)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_MaxQueueLength )( 
+            ISubscriptionOptions * This,
+            /* [in] */ VARIANT value);
+        
+        DECLSPEC_XFGVIRT(ISubscriptionOptions, get_QueueOverflowStrategy)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_QueueOverflowStrategy )( 
+            ISubscriptionOptions * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(ISubscriptionOptions, put_QueueOverflowStrategy)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_QueueOverflowStrategy )( 
+            ISubscriptionOptions * This,
+            /* [in] */ VARIANT value);
+        
+        END_INTERFACE
+    } ISubscriptionOptionsVtbl;
+
+    interface ISubscriptionOptions
+    {
+        CONST_VTBL struct ISubscriptionOptionsVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define ISubscriptionOptions_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define ISubscriptionOptions_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define ISubscriptionOptions_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define ISubscriptionOptions_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define ISubscriptionOptions_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define ISubscriptionOptions_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define ISubscriptionOptions_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define ISubscriptionOptions_get_KeepAlive(This,value)	\
+    ( (This)->lpVtbl -> get_KeepAlive(This,value) ) 
+
+#define ISubscriptionOptions_put_KeepAlive(This,value)	\
+    ( (This)->lpVtbl -> put_KeepAlive(This,value) ) 
+
+#define ISubscriptionOptions_get_AutoRequeryWindowSeconds(This,value)	\
+    ( (This)->lpVtbl -> get_AutoRequeryWindowSeconds(This,value) ) 
+
+#define ISubscriptionOptions_put_AutoRequeryWindowSeconds(This,value)	\
+    ( (This)->lpVtbl -> put_AutoRequeryWindowSeconds(This,value) ) 
+
+#define ISubscriptionOptions_get_MaxQueueLength(This,value)	\
+    ( (This)->lpVtbl -> get_MaxQueueLength(This,value) ) 
+
+#define ISubscriptionOptions_put_MaxQueueLength(This,value)	\
+    ( (This)->lpVtbl -> put_MaxQueueLength(This,value) ) 
+
+#define ISubscriptionOptions_get_QueueOverflowStrategy(This,value)	\
+    ( (This)->lpVtbl -> get_QueueOverflowStrategy(This,value) ) 
+
+#define ISubscriptionOptions_put_QueueOverflowStrategy(This,value)	\
+    ( (This)->lpVtbl -> put_QueueOverflowStrategy(This,value) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ISubscriptionOptions_INTERFACE_DEFINED__ */
+
+
+#ifndef __IAuthChallenge_INTERFACE_DEFINED__
+#define __IAuthChallenge_INTERFACE_DEFINED__
+
+/* interface IAuthChallenge */
+/* [unique][oleautomation][nonextensible][dual][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IAuthChallenge;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("6c67eb82-6b08-4581-9b8e-d64e0055fdad")
+    IAuthChallenge : public IDispatch
+    {
+    public:
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_RelayUrl( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_RelayUrl( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Challenge( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Challenge( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_ExpiresAt( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_ExpiresAt( 
+            /* [in] */ VARIANT value) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IAuthChallengeVtbl
+    {
+        BEGIN_INTERFACE
+        
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IAuthChallenge * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IAuthChallenge * This);
+        
+        DECLSPEC_XFGVIRT(IUnknown, Release)
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IAuthChallenge * This);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfoCount)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            IAuthChallenge * This,
+            /* [out] */ UINT *pctinfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfo)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            IAuthChallenge * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetIDsOfNames)
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            IAuthChallenge * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        DECLSPEC_XFGVIRT(IDispatch, Invoke)
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            IAuthChallenge * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        DECLSPEC_XFGVIRT(IAuthChallenge, get_RelayUrl)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_RelayUrl )( 
+            IAuthChallenge * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(IAuthChallenge, put_RelayUrl)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_RelayUrl )( 
+            IAuthChallenge * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(IAuthChallenge, get_Challenge)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Challenge )( 
+            IAuthChallenge * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(IAuthChallenge, put_Challenge)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Challenge )( 
+            IAuthChallenge * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(IAuthChallenge, get_ExpiresAt)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_ExpiresAt )( 
+            IAuthChallenge * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(IAuthChallenge, put_ExpiresAt)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_ExpiresAt )( 
+            IAuthChallenge * This,
+            /* [in] */ VARIANT value);
+        
+        END_INTERFACE
+    } IAuthChallengeVtbl;
+
+    interface IAuthChallenge
+    {
+        CONST_VTBL struct IAuthChallengeVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IAuthChallenge_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IAuthChallenge_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IAuthChallenge_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IAuthChallenge_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define IAuthChallenge_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define IAuthChallenge_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define IAuthChallenge_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define IAuthChallenge_get_RelayUrl(This,value)	\
+    ( (This)->lpVtbl -> get_RelayUrl(This,value) ) 
+
+#define IAuthChallenge_put_RelayUrl(This,value)	\
+    ( (This)->lpVtbl -> put_RelayUrl(This,value) ) 
+
+#define IAuthChallenge_get_Challenge(This,value)	\
+    ( (This)->lpVtbl -> get_Challenge(This,value) ) 
+
+#define IAuthChallenge_put_Challenge(This,value)	\
+    ( (This)->lpVtbl -> put_Challenge(This,value) ) 
+
+#define IAuthChallenge_get_ExpiresAt(This,value)	\
+    ( (This)->lpVtbl -> get_ExpiresAt(This,value) ) 
+
+#define IAuthChallenge_put_ExpiresAt(This,value)	\
+    ( (This)->lpVtbl -> put_ExpiresAt(This,value) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __IAuthChallenge_INTERFACE_DEFINED__ */
+
+
+#ifndef __INostrEventDraft_INTERFACE_DEFINED__
+#define __INostrEventDraft_INTERFACE_DEFINED__
+
+/* interface INostrEventDraft */
+/* [unique][oleautomation][nonextensible][dual][uuid][object] */ 
+
+
+EXTERN_C const IID IID_INostrEventDraft;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("e84bda88-f83e-4780-9e9e-ba9bd0f4e342")
+    INostrEventDraft : public IDispatch
+    {
+    public:
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_PublicKey( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_PublicKey( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_CreatedAt( 
+            /* [retval][out] */ DOUBLE *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_CreatedAt( 
+            /* [in] */ DOUBLE value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Kind( 
+            /* [retval][out] */ LONG *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Kind( 
+            /* [in] */ LONG value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Tags( 
+            /* [retval][out] */ SAFEARRAY * *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Tags( 
+            /* [in] */ SAFEARRAY * value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Content( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Content( 
+            /* [in] */ BSTR value) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct INostrEventDraftVtbl
+    {
+        BEGIN_INTERFACE
+        
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            INostrEventDraft * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            INostrEventDraft * This);
+        
+        DECLSPEC_XFGVIRT(IUnknown, Release)
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            INostrEventDraft * This);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfoCount)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            INostrEventDraft * This,
+            /* [out] */ UINT *pctinfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfo)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            INostrEventDraft * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetIDsOfNames)
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            INostrEventDraft * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        DECLSPEC_XFGVIRT(IDispatch, Invoke)
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            INostrEventDraft * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, get_PublicKey)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_PublicKey )( 
+            INostrEventDraft * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, put_PublicKey)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_PublicKey )( 
+            INostrEventDraft * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, get_CreatedAt)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_CreatedAt )( 
+            INostrEventDraft * This,
+            /* [retval][out] */ DOUBLE *value);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, put_CreatedAt)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_CreatedAt )( 
+            INostrEventDraft * This,
+            /* [in] */ DOUBLE value);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, get_Kind)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Kind )( 
+            INostrEventDraft * This,
+            /* [retval][out] */ LONG *value);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, put_Kind)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Kind )( 
+            INostrEventDraft * This,
+            /* [in] */ LONG value);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, get_Tags)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Tags )( 
+            INostrEventDraft * This,
+            /* [retval][out] */ SAFEARRAY * *value);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, put_Tags)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Tags )( 
+            INostrEventDraft * This,
+            /* [in] */ SAFEARRAY * value);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, get_Content)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Content )( 
+            INostrEventDraft * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(INostrEventDraft, put_Content)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Content )( 
+            INostrEventDraft * This,
+            /* [in] */ BSTR value);
+        
+        END_INTERFACE
+    } INostrEventDraftVtbl;
+
+    interface INostrEventDraft
+    {
+        CONST_VTBL struct INostrEventDraftVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define INostrEventDraft_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define INostrEventDraft_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define INostrEventDraft_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define INostrEventDraft_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define INostrEventDraft_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define INostrEventDraft_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define INostrEventDraft_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define INostrEventDraft_get_PublicKey(This,value)	\
+    ( (This)->lpVtbl -> get_PublicKey(This,value) ) 
+
+#define INostrEventDraft_put_PublicKey(This,value)	\
+    ( (This)->lpVtbl -> put_PublicKey(This,value) ) 
+
+#define INostrEventDraft_get_CreatedAt(This,value)	\
+    ( (This)->lpVtbl -> get_CreatedAt(This,value) ) 
+
+#define INostrEventDraft_put_CreatedAt(This,value)	\
+    ( (This)->lpVtbl -> put_CreatedAt(This,value) ) 
+
+#define INostrEventDraft_get_Kind(This,value)	\
+    ( (This)->lpVtbl -> get_Kind(This,value) ) 
+
+#define INostrEventDraft_put_Kind(This,value)	\
+    ( (This)->lpVtbl -> put_Kind(This,value) ) 
+
+#define INostrEventDraft_get_Tags(This,value)	\
+    ( (This)->lpVtbl -> get_Tags(This,value) ) 
+
+#define INostrEventDraft_put_Tags(This,value)	\
+    ( (This)->lpVtbl -> put_Tags(This,value) ) 
+
+#define INostrEventDraft_get_Content(This,value)	\
+    ( (This)->lpVtbl -> get_Content(This,value) ) 
+
+#define INostrEventDraft_put_Content(This,value)	\
+    ( (This)->lpVtbl -> put_Content(This,value) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __INostrEventDraft_INTERFACE_DEFINED__ */
+
+
+#ifndef __IClientOptions_INTERFACE_DEFINED__
+#define __IClientOptions_INTERFACE_DEFINED__
+
+/* interface IClientOptions */
+/* [unique][oleautomation][nonextensible][dual][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IClientOptions;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("4406ad1a-6e11-4126-8500-651f2377cc0c")
+    IClientOptions : public IDispatch
+    {
+    public:
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_WebSocketFactoryProgId( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_WebSocketFactoryProgId( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_UserAgent( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_UserAgent( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_ConnectTimeoutSeconds( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_ConnectTimeoutSeconds( 
+            /* [in] */ VARIANT value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_SendTimeoutSeconds( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_SendTimeoutSeconds( 
+            /* [in] */ VARIANT value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_ReceiveTimeoutSeconds( 
+            /* [retval][out] */ VARIANT *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_ReceiveTimeoutSeconds( 
+            /* [in] */ VARIANT value) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IClientOptionsVtbl
+    {
+        BEGIN_INTERFACE
+        
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IClientOptions * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IClientOptions * This);
+        
+        DECLSPEC_XFGVIRT(IUnknown, Release)
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IClientOptions * This);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfoCount)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            IClientOptions * This,
+            /* [out] */ UINT *pctinfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfo)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            IClientOptions * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetIDsOfNames)
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            IClientOptions * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        DECLSPEC_XFGVIRT(IDispatch, Invoke)
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            IClientOptions * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, get_WebSocketFactoryProgId)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_WebSocketFactoryProgId )( 
+            IClientOptions * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, put_WebSocketFactoryProgId)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_WebSocketFactoryProgId )( 
+            IClientOptions * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, get_UserAgent)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_UserAgent )( 
+            IClientOptions * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, put_UserAgent)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_UserAgent )( 
+            IClientOptions * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, get_ConnectTimeoutSeconds)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_ConnectTimeoutSeconds )( 
+            IClientOptions * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, put_ConnectTimeoutSeconds)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_ConnectTimeoutSeconds )( 
+            IClientOptions * This,
+            /* [in] */ VARIANT value);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, get_SendTimeoutSeconds)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_SendTimeoutSeconds )( 
+            IClientOptions * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, put_SendTimeoutSeconds)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_SendTimeoutSeconds )( 
+            IClientOptions * This,
+            /* [in] */ VARIANT value);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, get_ReceiveTimeoutSeconds)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_ReceiveTimeoutSeconds )( 
+            IClientOptions * This,
+            /* [retval][out] */ VARIANT *value);
+        
+        DECLSPEC_XFGVIRT(IClientOptions, put_ReceiveTimeoutSeconds)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_ReceiveTimeoutSeconds )( 
+            IClientOptions * This,
+            /* [in] */ VARIANT value);
+        
+        END_INTERFACE
+    } IClientOptionsVtbl;
+
+    interface IClientOptions
+    {
+        CONST_VTBL struct IClientOptionsVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IClientOptions_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IClientOptions_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IClientOptions_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IClientOptions_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define IClientOptions_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define IClientOptions_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define IClientOptions_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define IClientOptions_get_WebSocketFactoryProgId(This,value)	\
+    ( (This)->lpVtbl -> get_WebSocketFactoryProgId(This,value) ) 
+
+#define IClientOptions_put_WebSocketFactoryProgId(This,value)	\
+    ( (This)->lpVtbl -> put_WebSocketFactoryProgId(This,value) ) 
+
+#define IClientOptions_get_UserAgent(This,value)	\
+    ( (This)->lpVtbl -> get_UserAgent(This,value) ) 
+
+#define IClientOptions_put_UserAgent(This,value)	\
+    ( (This)->lpVtbl -> put_UserAgent(This,value) ) 
+
+#define IClientOptions_get_ConnectTimeoutSeconds(This,value)	\
+    ( (This)->lpVtbl -> get_ConnectTimeoutSeconds(This,value) ) 
+
+#define IClientOptions_put_ConnectTimeoutSeconds(This,value)	\
+    ( (This)->lpVtbl -> put_ConnectTimeoutSeconds(This,value) ) 
+
+#define IClientOptions_get_SendTimeoutSeconds(This,value)	\
+    ( (This)->lpVtbl -> get_SendTimeoutSeconds(This,value) ) 
+
+#define IClientOptions_put_SendTimeoutSeconds(This,value)	\
+    ( (This)->lpVtbl -> put_SendTimeoutSeconds(This,value) ) 
+
+#define IClientOptions_get_ReceiveTimeoutSeconds(This,value)	\
+    ( (This)->lpVtbl -> get_ReceiveTimeoutSeconds(This,value) ) 
+
+#define IClientOptions_put_ReceiveTimeoutSeconds(This,value)	\
+    ( (This)->lpVtbl -> put_ReceiveTimeoutSeconds(This,value) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __IClientOptions_INTERFACE_DEFINED__ */
+
+
+#ifndef __INostrOkResult_INTERFACE_DEFINED__
+#define __INostrOkResult_INTERFACE_DEFINED__
+
+/* interface INostrOkResult */
+/* [unique][oleautomation][nonextensible][dual][uuid][object] */ 
+
+
+EXTERN_C const IID IID_INostrOkResult;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("f86b5e8f-9767-4df0-b750-cb51506b1922")
+    INostrOkResult : public IDispatch
+    {
+    public:
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Success( 
+            /* [retval][out] */ VARIANT_BOOL *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Success( 
+            /* [in] */ VARIANT_BOOL value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_EventId( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_EventId( 
+            /* [in] */ BSTR value) = 0;
+        
+        virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_Message( 
+            /* [retval][out] */ BSTR *value) = 0;
+        
+        virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_Message( 
+            /* [in] */ BSTR value) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct INostrOkResultVtbl
+    {
+        BEGIN_INTERFACE
+        
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            INostrOkResult * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            INostrOkResult * This);
+        
+        DECLSPEC_XFGVIRT(IUnknown, Release)
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            INostrOkResult * This);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfoCount)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfoCount )( 
+            INostrOkResult * This,
+            /* [out] */ UINT *pctinfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetTypeInfo)
+        HRESULT ( STDMETHODCALLTYPE *GetTypeInfo )( 
+            INostrOkResult * This,
+            /* [in] */ UINT iTInfo,
+            /* [in] */ LCID lcid,
+            /* [out] */ ITypeInfo **ppTInfo);
+        
+        DECLSPEC_XFGVIRT(IDispatch, GetIDsOfNames)
+        HRESULT ( STDMETHODCALLTYPE *GetIDsOfNames )( 
+            INostrOkResult * This,
+            /* [in] */ REFIID riid,
+            /* [size_is][in] */ LPOLESTR *rgszNames,
+            /* [range][in] */ UINT cNames,
+            /* [in] */ LCID lcid,
+            /* [size_is][out] */ DISPID *rgDispId);
+        
+        DECLSPEC_XFGVIRT(IDispatch, Invoke)
+        /* [local] */ HRESULT ( STDMETHODCALLTYPE *Invoke )( 
+            INostrOkResult * This,
+            /* [annotation][in] */ 
+            _In_  DISPID dispIdMember,
+            /* [annotation][in] */ 
+            _In_  REFIID riid,
+            /* [annotation][in] */ 
+            _In_  LCID lcid,
+            /* [annotation][in] */ 
+            _In_  WORD wFlags,
+            /* [annotation][out][in] */ 
+            _In_  DISPPARAMS *pDispParams,
+            /* [annotation][out] */ 
+            _Out_opt_  VARIANT *pVarResult,
+            /* [annotation][out] */ 
+            _Out_opt_  EXCEPINFO *pExcepInfo,
+            /* [annotation][out] */ 
+            _Out_opt_  UINT *puArgErr);
+        
+        DECLSPEC_XFGVIRT(INostrOkResult, get_Success)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Success )( 
+            INostrOkResult * This,
+            /* [retval][out] */ VARIANT_BOOL *value);
+        
+        DECLSPEC_XFGVIRT(INostrOkResult, put_Success)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Success )( 
+            INostrOkResult * This,
+            /* [in] */ VARIANT_BOOL value);
+        
+        DECLSPEC_XFGVIRT(INostrOkResult, get_EventId)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_EventId )( 
+            INostrOkResult * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(INostrOkResult, put_EventId)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_EventId )( 
+            INostrOkResult * This,
+            /* [in] */ BSTR value);
+        
+        DECLSPEC_XFGVIRT(INostrOkResult, get_Message)
+        /* [propget][id] */ HRESULT ( STDMETHODCALLTYPE *get_Message )( 
+            INostrOkResult * This,
+            /* [retval][out] */ BSTR *value);
+        
+        DECLSPEC_XFGVIRT(INostrOkResult, put_Message)
+        /* [propput][id] */ HRESULT ( STDMETHODCALLTYPE *put_Message )( 
+            INostrOkResult * This,
+            /* [in] */ BSTR value);
+        
+        END_INTERFACE
+    } INostrOkResultVtbl;
+
+    interface INostrOkResult
+    {
+        CONST_VTBL struct INostrOkResultVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define INostrOkResult_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define INostrOkResult_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define INostrOkResult_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define INostrOkResult_GetTypeInfoCount(This,pctinfo)	\
+    ( (This)->lpVtbl -> GetTypeInfoCount(This,pctinfo) ) 
+
+#define INostrOkResult_GetTypeInfo(This,iTInfo,lcid,ppTInfo)	\
+    ( (This)->lpVtbl -> GetTypeInfo(This,iTInfo,lcid,ppTInfo) ) 
+
+#define INostrOkResult_GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId)	\
+    ( (This)->lpVtbl -> GetIDsOfNames(This,riid,rgszNames,cNames,lcid,rgDispId) ) 
+
+#define INostrOkResult_Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr)	\
+    ( (This)->lpVtbl -> Invoke(This,dispIdMember,riid,lcid,wFlags,pDispParams,pVarResult,pExcepInfo,puArgErr) ) 
+
+
+#define INostrOkResult_get_Success(This,value)	\
+    ( (This)->lpVtbl -> get_Success(This,value) ) 
+
+#define INostrOkResult_put_Success(This,value)	\
+    ( (This)->lpVtbl -> put_Success(This,value) ) 
+
+#define INostrOkResult_get_EventId(This,value)	\
+    ( (This)->lpVtbl -> get_EventId(This,value) ) 
+
+#define INostrOkResult_put_EventId(This,value)	\
+    ( (This)->lpVtbl -> put_EventId(This,value) ) 
+
+#define INostrOkResult_get_Message(This,value)	\
+    ( (This)->lpVtbl -> get_Message(This,value) ) 
+
+#define INostrOkResult_put_Message(This,value)	\
+    ( (This)->lpVtbl -> put_Message(This,value) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __INostrOkResult_INTERFACE_DEFINED__ */
 
 
 EXTERN_C const CLSID CLSID_NostrClient;

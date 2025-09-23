@@ -80,6 +80,196 @@ library COMNostrNativeLib
 
     [
         object,
+        uuid(b67fcdef-060a-48e2-aa7a-e005be256b4d),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface INostrEvent : IDispatch
+    {
+        [id(1), propget] HRESULT Id([out, retval] BSTR* value);
+        [id(1), propput] HRESULT Id([in] BSTR value);
+        [id(2), propget] HRESULT PublicKey([out, retval] BSTR* value);
+        [id(2), propput] HRESULT PublicKey([in] BSTR value);
+        [id(3), propget] HRESULT CreatedAt([out, retval] DOUBLE* value);
+        [id(3), propput] HRESULT CreatedAt([in] DOUBLE value);
+        [id(4), propget] HRESULT Kind([out, retval] LONG* value);
+        [id(4), propput] HRESULT Kind([in] LONG value);
+        [id(5), propget] HRESULT Tags([out, retval] SAFEARRAY(VARIANT)* value);
+        [id(5), propput] HRESULT Tags([in] SAFEARRAY(VARIANT) value);
+        [id(6), propget] HRESULT Content([out, retval] BSTR* value);
+        [id(6), propput] HRESULT Content([in] BSTR value);
+        [id(7), propget] HRESULT Signature([out, retval] BSTR* value);
+        [id(7), propput] HRESULT Signature([in] BSTR value);
+    };
+
+    [
+        object,
+        uuid(735c552b-ea89-4811-adbe-ac5bfdcb30a2),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface INostrFilter : IDispatch
+    {
+        [id(1), propget] HRESULT Ids([out, retval] SAFEARRAY(BSTR)* value);
+        [id(1), propput] HRESULT Ids([in] SAFEARRAY(BSTR) value);
+        [id(2), propget] HRESULT Authors([out, retval] SAFEARRAY(BSTR)* value);
+        [id(2), propput] HRESULT Authors([in] SAFEARRAY(BSTR) value);
+        [id(3), propget] HRESULT Kinds([out, retval] SAFEARRAY(LONG)* value);
+        [id(3), propput] HRESULT Kinds([in] SAFEARRAY(LONG) value);
+        [id(4), propget] HRESULT Tags([out, retval] SAFEARRAY(IDispatch*)* value);
+        [id(4), propput] HRESULT Tags([in] SAFEARRAY(IDispatch*) value);
+        [id(5), propget] HRESULT Since([out, retval] VARIANT* value);
+        [id(5), propput] HRESULT Since([in] VARIANT value);
+        [id(6), propget] HRESULT Until([out, retval] VARIANT* value);
+        [id(6), propput] HRESULT Until([in] VARIANT value);
+        [id(7), propget] HRESULT Limit([out, retval] VARIANT* value);
+        [id(7), propput] HRESULT Limit([in] VARIANT value);
+    };
+
+    [
+        object,
+        uuid(70aa92a3-62ea-4622-950c-1f20b187fead),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface INostrTagQuery : IDispatch
+    {
+        [id(1), propget] HRESULT Label([out, retval] BSTR* value);
+        [id(1), propput] HRESULT Label([in] BSTR value);
+        [id(2), propget] HRESULT Values([out, retval] SAFEARRAY(BSTR)* value);
+        [id(2), propput] HRESULT Values([in] SAFEARRAY(BSTR) value);
+    };
+
+    [
+        object,
+        uuid(84d3b9ea-fc37-44bf-9dec-e5b223e897c1),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface IRelayDescriptor : IDispatch
+    {
+        [id(1), propget] HRESULT Url([out, retval] BSTR* value);
+        [id(1), propput] HRESULT Url([in] BSTR value);
+        [id(2), propget] HRESULT ReadEnabled([out, retval] VARIANT_BOOL* value);
+        [id(2), propput] HRESULT ReadEnabled([in] VARIANT_BOOL value);
+        [id(3), propget] HRESULT WriteEnabled([out, retval] VARIANT_BOOL* value);
+        [id(3), propput] HRESULT WriteEnabled([in] VARIANT_BOOL value);
+        [id(4), propget] HRESULT Preferred([out, retval] VARIANT_BOOL* value);
+        [id(4), propput] HRESULT Preferred([in] VARIANT_BOOL value);
+        [id(5), propget] HRESULT Metadata([out, retval] VARIANT* value);
+        [id(5), propput] HRESULT Metadata([in] VARIANT value);
+    };
+
+    [
+        object,
+        uuid(e00bff8d-81b7-4f09-8e43-5d4028aff887),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface ISubscriptionOptions : IDispatch
+    {
+        [id(1), propget] HRESULT KeepAlive([out, retval] VARIANT_BOOL* value);
+        [id(1), propput] HRESULT KeepAlive([in] VARIANT_BOOL value);
+        [id(2), propget] HRESULT AutoRequeryWindowSeconds([out, retval] VARIANT* value);
+        [id(2), propput] HRESULT AutoRequeryWindowSeconds([in] VARIANT value);
+        [id(3), propget] HRESULT MaxQueueLength([out, retval] VARIANT* value);
+        [id(3), propput] HRESULT MaxQueueLength([in] VARIANT value);
+        [id(4), propget] HRESULT QueueOverflowStrategy([out, retval] VARIANT* value);
+        [id(4), propput] HRESULT QueueOverflowStrategy([in] VARIANT value);
+    };
+
+    [
+        object,
+        uuid(6c67eb82-6b08-4581-9b8e-d64e0055fdad),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface IAuthChallenge : IDispatch
+    {
+        [id(1), propget] HRESULT RelayUrl([out, retval] BSTR* value);
+        [id(1), propput] HRESULT RelayUrl([in] BSTR value);
+        [id(2), propget] HRESULT Challenge([out, retval] BSTR* value);
+        [id(2), propput] HRESULT Challenge([in] BSTR value);
+        [id(3), propget] HRESULT ExpiresAt([out, retval] VARIANT* value);
+        [id(3), propput] HRESULT ExpiresAt([in] VARIANT value);
+    };
+
+    [
+        object,
+        uuid(e84bda88-f83e-4780-9e9e-ba9bd0f4e342),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface INostrEventDraft : IDispatch
+    {
+        [id(1), propget] HRESULT PublicKey([out, retval] BSTR* value);
+        [id(1), propput] HRESULT PublicKey([in] BSTR value);
+        [id(2), propget] HRESULT CreatedAt([out, retval] DOUBLE* value);
+        [id(2), propput] HRESULT CreatedAt([in] DOUBLE value);
+        [id(3), propget] HRESULT Kind([out, retval] LONG* value);
+        [id(3), propput] HRESULT Kind([in] LONG value);
+        [id(4), propget] HRESULT Tags([out, retval] SAFEARRAY(VARIANT)* value);
+        [id(4), propput] HRESULT Tags([in] SAFEARRAY(VARIANT) value);
+        [id(5), propget] HRESULT Content([out, retval] BSTR* value);
+        [id(5), propput] HRESULT Content([in] BSTR value);
+    };
+
+    [
+        object,
+        uuid(4406ad1a-6e11-4126-8500-651f2377cc0c),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface IClientOptions : IDispatch
+    {
+        [id(1), propget] HRESULT WebSocketFactoryProgId([out, retval] BSTR* value);
+        [id(1), propput] HRESULT WebSocketFactoryProgId([in] BSTR value);
+        [id(2), propget] HRESULT UserAgent([out, retval] BSTR* value);
+        [id(2), propput] HRESULT UserAgent([in] BSTR value);
+        [id(3), propget] HRESULT ConnectTimeoutSeconds([out, retval] VARIANT* value);
+        [id(3), propput] HRESULT ConnectTimeoutSeconds([in] VARIANT value);
+        [id(4), propget] HRESULT SendTimeoutSeconds([out, retval] VARIANT* value);
+        [id(4), propput] HRESULT SendTimeoutSeconds([in] VARIANT value);
+        [id(5), propget] HRESULT ReceiveTimeoutSeconds([out, retval] VARIANT* value);
+        [id(5), propput] HRESULT ReceiveTimeoutSeconds([in] VARIANT value);
+    };
+
+    [
+        object,
+        uuid(f86b5e8f-9767-4df0-b750-cb51506b1922),
+        dual,
+        nonextensible,
+        oleautomation,
+        pointer_default(unique)
+    ]
+    interface INostrOkResult : IDispatch
+    {
+        [id(1), propget] HRESULT Success([out, retval] VARIANT_BOOL* value);
+        [id(1), propput] HRESULT Success([in] VARIANT_BOOL value);
+        [id(2), propget] HRESULT EventId([out, retval] BSTR* value);
+        [id(2), propput] HRESULT EventId([in] BSTR value);
+        [id(3), propget] HRESULT Message([out, retval] BSTR* value);
+        [id(3), propput] HRESULT Message([in] BSTR value);
+    };
+
+    [
+        object,
         uuid(2d375c22-fda2-4286-bcbe-81fdf2f245b5),
         dual,
         nonextensible,
@@ -176,7 +366,7 @@ library COMNostrNativeLib
     ]
     coclass NostrEvent
     {
-        [default] interface IDispatch;
+        [default] interface INostrEvent;
     };
 
     [
@@ -184,7 +374,7 @@ library COMNostrNativeLib
     ]
     coclass NostrFilter
     {
-        [default] interface IDispatch;
+        [default] interface INostrFilter;
     };
 
     [
@@ -192,7 +382,7 @@ library COMNostrNativeLib
     ]
     coclass NostrTagQuery
     {
-        [default] interface IDispatch;
+        [default] interface INostrTagQuery;
     };
 
     [
@@ -200,7 +390,7 @@ library COMNostrNativeLib
     ]
     coclass RelayDescriptor
     {
-        [default] interface IDispatch;
+        [default] interface IRelayDescriptor;
     };
 
     [
@@ -208,7 +398,7 @@ library COMNostrNativeLib
     ]
     coclass SubscriptionOptions
     {
-        [default] interface IDispatch;
+        [default] interface ISubscriptionOptions;
     };
 
     [
@@ -216,7 +406,7 @@ library COMNostrNativeLib
     ]
     coclass AuthChallenge
     {
-        [default] interface IDispatch;
+        [default] interface IAuthChallenge;
     };
 
     [
@@ -224,7 +414,7 @@ library COMNostrNativeLib
     ]
     coclass NostrEventDraft
     {
-        [default] interface IDispatch;
+        [default] interface INostrEventDraft;
     };
 
     [
@@ -232,7 +422,7 @@ library COMNostrNativeLib
     ]
     coclass ClientOptions
     {
-        [default] interface IDispatch;
+        [default] interface IClientOptions;
     };
 
     [
@@ -240,6 +430,6 @@ library COMNostrNativeLib
     ]
     coclass NostrOkResult
     {
-        [default] interface IDispatch;
+        [default] interface INostrOkResult;
     };
 };

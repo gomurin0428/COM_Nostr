@@ -21,23 +21,23 @@
 
 ## フェーズ別計画
 ### フェーズ0: 既存資産の棚卸しと仕様確定 (2日)
-- `COM_Nostr/Contracts` 配下の主要クラスを洗い出し、移植対象のメソッドと依存関係をクラス図にまとめる。
-- README.md と `Nostrプロトコルの現行仕様まとめ.docx` を読み合わせ、Native 実装で必要な NIP (01/11/15/20/42/65) の最小要件を明文化する。
-- Nostr イベント／フィルタの JSON 期待値を .NET 実装のユニットテストから抽出し、C++ で再利用できるサンプルデータを作成する。->これはユニットテストが消えているので無理。
-- 成果物: `docs/native_port_overview.md` (移植方針)、`docs/native_sequence_diagrams.md` (必要なら.Mermaidで書く。) 。
+- [x] `COM_Nostr/Contracts` 配下の主要クラスを洗い出し、移植対象のメソッドと依存関係をクラス図にまとめる。
+- [x] README.md と `Nostrプロトコルの現行仕様まとめ.docx` を読み合わせ、Native 実装で必要な NIP (01/11/15/20/42/65) の最小要件を明文化する。
+- [ ] Nostr イベント／フィルタの JSON 期待値を .NET 実装のユニットテストから抽出し、C++ で再利用できるサンプルデータを作成する。->これはユニットテストが消えているので無理。
+- [x] 成果物: `docs/native_port_overview.md` (移植方針)、`docs/native_sequence_diagrams.md` (必要なら.Mermaidで書く。) 。
 
 ### フェーズ1: ビルド環境と依存ライブラリ整備 (3日)
-- `COM_Nostr_Native.vcxproj` に C++20 / マルチバイト禁止 (Unicode 固定) / Treat warnings as errors を設定。
-- `external/` ディレクトリを作成し `libsecp256k1` をサブモジュールとして追加、x64 Release/Debug の静的ライブラリをビルドする PowerShell スクリプトを用意。
-- `packages/native` に `nlohmann::json` を追加し、プリコンパイルヘッダで include。
-- CI 手順として `msbuild COM_Nostr_Native.vcxproj /p:Configuration=Debug;Platform=x64` と `Release` の両方が通ることを確認する。
-- 成果物: `build/native-deps.ps1`, `external/libsecp256k1/README.port.md`。
+- [x] `COM_Nostr_Native.vcxproj` に C++20 / マルチバイト禁止 (Unicode 固定) / Treat warnings as errors を設定。
+- [x] `external/` ディレクトリを作成し `libsecp256k1` をサブモジュールとして追加、x64 Release/Debug の静的ライブラリをビルドする PowerShell スクリプトを用意。
+- [x] `packages/native` に `nlohmann::json` を追加し、プリコンパイルヘッダで include。
+- [x] CI 手順として `msbuild COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` と `/p:Configuration=Release /p:Platform=x64` の両方が通ることを確認する。
+- [x] 成果物: `build/native-deps.ps1`, `external/libsecp256k1/README.port.md`。
 
 ### フェーズ2: 共通ユーティリティと DTO 層の実装 (4日)
-- COM 文字列⇔UTF-8 変換、`SAFEARRAY` ハンドリング、`VARIANT` ラッパーをまとめた `include/ComValueHelpers.h` を実装。
-- DTO (`NostrEvent`, `NostrFilter`, `RelayDescriptor` など) を ATL の `IDispatchImpl` で実装し、.NET のプロパティと同名のプロパティを expose。
-- DTO ↔ JSON の変換ヘルパー (`NostrJsonSerializer`) を C++ で実装し、.NET の `COM_Nostr/Internal/NostrJsonSerializer.cs` と同等のフィールド名／バリデーションを再現。
-- 成果物: DTO クラス、`tests/native/NostrJsonSerializerTests.cpp`。
+- [x] COM 文字列⇔UTF-8 変換、`SAFEARRAY` ハンドリング、`VARIANT` ラッパーをまとめた `include/ComValueHelpers.h` を実装。
+- [x] DTO (`NostrEvent`, `NostrFilter`, `RelayDescriptor` など) を ATL の `IDispatchImpl` で実装し、.NET のプロパティと同名のプロパティを expose。
+- [x] DTO ↔ JSON の変換ヘルパー (`NostrJsonSerializer`) を C++ で実装し、.NET の `COM_Nostr/Internal/NostrJsonSerializer.cs` と同等のフィールド名／バリデーションを再現。
+- [x] 成果物: DTO クラス、UnitTest_COM_Nostrへ実装されたテストケース
 
 ### フェーズ3: ランタイム基盤 (HTTP/WebSocket/リソース管理) (5日)
 - WinHTTP を用いた `NativeHttpClient` を実装し、NIP-11 ドキュメント取得と JSON パースをサポート。

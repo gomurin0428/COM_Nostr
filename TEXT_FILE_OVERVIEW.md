@@ -44,6 +44,8 @@
 | `UnitTest_COM_Nostr/NostrAuthTests.cs` | モックセッションで AUTH メッセージや `auth-required` プレフィックスの通知連携を検証する MSTest。 |
 | `UnitTest_COM_Nostr/StrfryRelayHost.cs` | テストごとに strfry コンテナを起動・停止し、`RestartAsync` でリレー再起動シナリオも提供する補助ユーティリティ。 |
 | `UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj` | テストプロジェクトのターゲットフレームワークや参照設定を定義。 |
+| `tests/native/NostrNativeTests/SerializerTests.cpp` | C++ 側の JSON シリアライザと DTO 相互運用を検証する MSTest (ネイティブ) 。AUTH expiresAt などの境界を確認する。 |
+| `tests/native/NostrNativeTests/AtlModuleStub.cpp` | ネイティブ単体テスト用に ATL モジュール (`_AtlModule`) を簡易定義し、COM オブジェクト生成が例外なく動作するようにするスタブ。 |
 | `packages/native/nlohmann_json/include/nlohmann/json.hpp` | nlohmann/json 3.11.3 の単一ヘッダー。Native プロジェクトのプリコンパイルヘッダー経由で JSON 変換に利用。 |
 | `ImplementationPlan.md` | COM_Nostr_Native 移植のフェーズ別計画とテスト戦略をまとめた最新の実装ロードマップ。 |
 | `history.md` | 日次の作業内容を簡潔に記録する作業ログ。 |

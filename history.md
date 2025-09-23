@@ -15,3 +15,6 @@
 - `packages/native/nlohmann_json` を追加し、サブモジュール化した libsecp256k1 と合わせてネイティブ依存の取得・配置フローを整備。
 - `build/native-deps.ps1` を新設して libsecp256k1 を Debug/Release x64 で CMake ビルド・インストールするスクリプトを整備し、README と TEXT_FILE_OVERVIEW を更新。
 - `external/libsecp256k1/README.port.md` を作成し、ビルドオプションとスクリプトの利用手順を記録。
+- COM_Nostr_Native フェーズ2の成果物として `NostrJsonSerializer` の AUTH expiresAt パースを `expiresAt`/文字列形式に拡張し、`Variant` 安全配列や JSON 変換の単体テスト (`SerializerTests`) を強化。ATL 依存のない `Fake*Dispatch` スタブと `_AtlModule` スタブ (`AtlModuleStub.cpp`) を追加。
+- `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` および Release 構成でビルドを通し、`NostrNativeTests.vcxproj` も Debug|x64 でビルド。`vstest.console` を用いて `tests/native/NostrNativeTests/x64/Debug/NostrNativeTests.dll` の6件テストを成功確認。
+- ImplementationPlan.md をチェックボックス付き進捗に更新し、TEXT_FILE_OVERVIEW.md にネイティブテストの新規ファイル概要を追記。
