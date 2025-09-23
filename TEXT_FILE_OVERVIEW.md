@@ -4,9 +4,11 @@
 | --- | --- |
 | `.gitattributes` | 改行コードの正規化や特定拡張子のマージ・差分設定方針を定義。 |
 | `.gitignore` | Visual Studio/ .NET 開発で不要な生成物を除外するための無視設定。 |
+| `.gitmodules` | `external/libsecp256k1` サブモジュールの取得元と配置先を定義。 |
 | `Agents.md` | コントリビューター向けの作業ガイドラインとテスト方針を箇条書きで記載。 |
 | `README.md` | COM_Nostr コンポーネントの概要、公開 COM インターフェイス、データモデル、Setup_COM_Nostr を用いた MSI 作成手順と手動登録手順をまとめた中心ドキュメント。 |
 | `COM_Nostr.sln` | 本体ライブラリとテストプロジェクトを含む Visual Studio ソリューション定義。 |
+| `build/native-deps.ps1` | libsecp256k1 を Debug/Release x64 で CMake ビルドし、`packages/native/libsecp256k1` へ静的ライブラリを配置するスクリプト。 |
 | `COM_Nostr/COM_Nostr.csproj` | COM 対応の .NET 8 プロジェクト設定と NBitcoin.Secp256k1 依存パッケージに加え、生成済み `COM_Nostr.tlb` をアセンブリへ埋め込む設定。 |
 | `COM_Nostr/COM_Nostr.idl` | COM 公開インターフェイスと列挙体、DTO コクラスをまとめた IDL 定義。タイプライブラリ生成時の基準にする。 |
 | `COM_Nostr_Native/COMNostrNative.idl` | C++ ATL 版 `COM_Nostr_Native` のタイプライブラリ定義。COM_Nostr と同じインターフェイス/IID/CLSID を再宣言して移植を支える。 |
@@ -42,6 +44,7 @@
 | `UnitTest_COM_Nostr/NostrAuthTests.cs` | モックセッションで AUTH メッセージや `auth-required` プレフィックスの通知連携を検証する MSTest。 |
 | `UnitTest_COM_Nostr/StrfryRelayHost.cs` | テストごとに strfry コンテナを起動・停止し、`RestartAsync` でリレー再起動シナリオも提供する補助ユーティリティ。 |
 | `UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj` | テストプロジェクトのターゲットフレームワークや参照設定を定義。 |
+| `packages/native/nlohmann_json/include/nlohmann/json.hpp` | nlohmann/json 3.11.3 の単一ヘッダー。Native プロジェクトのプリコンパイルヘッダー経由で JSON 変換に利用。 |
 | `ImplementationPlan.md` | COM_Nostr_Native 移植のフェーズ別計画とテスト戦略をまとめた最新の実装ロードマップ。 |
 | `history.md` | 日次の作業内容を簡潔に記録する作業ログ。 |
 | `CHANGELOG.md` | リリース履歴（初版 0.1.0 の主要トピック）を記録。 |
@@ -49,6 +52,7 @@
 | `docs/installer_regsvr32_plan.md` | MSIでcomhost DLLをregsvr32登録するためのCustom Action追加方針と検証計画。 |
 | `docs/native_port_overview.md` | C++/ATL への移植対象コンポーネント、NIP 要件、Native モジュール設計、JSON サンプルを整理したサマリー。 |
 | `docs/native_sequence_diagrams.md` | Relay 接続/購読と EVENT・AUTH フローの Mermaid シーケンス図をまとめた資料。 |
+| `external/libsecp256k1/README.port.md` | サブモジュールのビルドオプション (ECDH/Schnorrsig、静的リンク) と `native-deps.ps1` の利用手順を記載した移植メモ。 |
 | `TROUBLESHOOTING.md` | QueueOverflowStrategy、docker strfry 再起動時の注意点、PowerShell 7 の 0x800080A5、32bit/64bit 登録ミスマッチ、.NET 8 アセンブリに対する tlbexp 失敗時の対処法をまとめたトラブルシュートメモ。 |
 
 > ※ バイナリ形式の `Nostrプロトコルの現行仕様まとめ.docx` は対象外としています。

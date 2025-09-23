@@ -11,3 +11,7 @@
 - Phase0 の成果物として `docs/native_port_overview.md` と `docs/native_sequence_diagrams.md` を新規作成し、移植対象クラスの依存関係・NIP 要件・シーケンス図を整備。
 - WinHTTP の圧縮未対応など Native 実装特有の留意点を TROUBLESHOOTING.md に追記し、TEXT_FILE_OVERVIEW.md も更新。
 - `msbuild COM_Nostr.sln /p:Configuration=Debug /p:Platform=x64` を実行し、既存 .NET / C++ プロジェクトのビルド成功を確認。
+- COM_Nostr_Native のビルド設定を C++20 固定・警告をエラー扱いに変更し、プリコンパイルヘッダーに nlohmann/json 3.11.3 を取り込むように更新。
+- `packages/native/nlohmann_json` を追加し、サブモジュール化した libsecp256k1 と合わせてネイティブ依存の取得・配置フローを整備。
+- `build/native-deps.ps1` を新設して libsecp256k1 を Debug/Release x64 で CMake ビルド・インストールするスクリプトを整備し、README と TEXT_FILE_OVERVIEW を更新。
+- `external/libsecp256k1/README.port.md` を作成し、ビルドオプションとスクリプトの利用手順を記録。

@@ -9,5 +9,6 @@
 
 // プリコンパイルするヘッダーをここに追加します
 #include "framework.h"
+#include <nlohmann/json.hpp>
 
 #endif //PCH_H

@@ -7,6 +7,13 @@
 - 詳細設計メモは `docs/phase0_design.md` にまとめている。
 - C++/ATL 移植用の `COM_Nostr_Native` プロジェクトでも `COMNostrNative.idl` にて同一インターフェイスを定義し、実装差し替えの準備を進めている。
 
+## Native ビルド準備 (C++/ATL)
+1. `git submodule update --init --recursive` を実行し、`external/libsecp256k1` を取得する。
+2. Visual Studio 2022 (v143) と CMake が利用できる環境で `pwsh ./build/native-deps.ps1` を実行し、`Debug` と `Release` の静的ライブラリ (`packages/native/libsecp256k1/x64/<Config>/lib/secp256k1.lib`) を生成する。
+   - 再生成したい場合は `-Clean` オプションを付与する。
+3. `COM_Nostr_Native.vcxproj` は C++20 固定かつ Werror (`/WX`) に設定されているため、警告を解消してからコミットする。
+4. JSON 変換にはリポジトリ同梱の `packages/native/nlohmann_json` (nlohmann/json 3.11.3) をプリコンパイルヘッダー経由で利用する。
+
 ## 公開 COM インターフェイス一覧
 | インターフェイス | 役割 |
 | --- | --- |
