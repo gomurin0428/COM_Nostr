@@ -47,6 +47,8 @@
 | `CHANGELOG.md` | リリース履歴（初版 0.1.0 の主要トピック）を記録。 |
 | `docs/phase0_design.md` | フェーズ0で決定したクラス構成、WebSocket/コールバック方針、例外マッピングの詳細設計メモ。 |
 | `docs/installer_regsvr32_plan.md` | MSIでcomhost DLLをregsvr32登録するためのCustom Action追加方針と検証計画。 |
+| `docs/native_port_overview.md` | C++/ATL への移植対象コンポーネント、NIP 要件、Native モジュール設計、JSON サンプルを整理したサマリー。 |
+| `docs/native_sequence_diagrams.md` | Relay 接続/購読と EVENT・AUTH フローの Mermaid シーケンス図をまとめた資料。 |
 | `TROUBLESHOOTING.md` | QueueOverflowStrategy、docker strfry 再起動時の注意点、PowerShell 7 の 0x800080A5、32bit/64bit 登録ミスマッチ、.NET 8 アセンブリに対する tlbexp 失敗時の対処法をまとめたトラブルシュートメモ。 |
 
 > ※ バイナリ形式の `Nostrプロトコルの現行仕様まとめ.docx` は対象外としています。

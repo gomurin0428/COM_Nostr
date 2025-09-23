@@ -8,3 +8,6 @@
 - `dotnet test` を試行したが 0 件実行のまま終了したため、詳細は `UnitTest_COM_Nostr\bin\Debug\net8.0-windows\TestResults` のログを参照。
 - COM_Nostr_Native のフェーズ別実装計画を再策定し、ImplementationPlan.md と TEXT_FILE_OVERVIEW.md を更新。
 - msbuild で `COM_Nostr_Native\COM_Nostr_Native.vcxproj` (Debug|x64) をビルドし、現状のネイティブ DLL が成功裏にリンクされることを確認。
+- Phase0 の成果物として `docs/native_port_overview.md` と `docs/native_sequence_diagrams.md` を新規作成し、移植対象クラスの依存関係・NIP 要件・シーケンス図を整備。
+- WinHTTP の圧縮未対応など Native 実装特有の留意点を TROUBLESHOOTING.md に追記し、TEXT_FILE_OVERVIEW.md も更新。
+- `msbuild COM_Nostr.sln /p:Configuration=Debug /p:Platform=x64` を実行し、既存 .NET / C++ プロジェクトのビルド成功を確認。

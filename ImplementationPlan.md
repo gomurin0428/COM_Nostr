@@ -23,8 +23,8 @@
 ### フェーズ0: 既存資産の棚卸しと仕様確定 (2日)
 - `COM_Nostr/Contracts` 配下の主要クラスを洗い出し、移植対象のメソッドと依存関係をクラス図にまとめる。
 - README.md と `Nostrプロトコルの現行仕様まとめ.docx` を読み合わせ、Native 実装で必要な NIP (01/11/15/20/42/65) の最小要件を明文化する。
-- Nostr イベント／フィルタの JSON 期待値を .NET 実装のユニットテストから抽出し、C++ で再利用できるサンプルデータを作成する。
-- 成果物: `docs/native_port_overview.md` (移植方針)、`docs/native_sequence_diagrams.drawio` (必要なら) 。
+- Nostr イベント／フィルタの JSON 期待値を .NET 実装のユニットテストから抽出し、C++ で再利用できるサンプルデータを作成する。->これはユニットテストが消えているので無理。
+- 成果物: `docs/native_port_overview.md` (移植方針)、`docs/native_sequence_diagrams.md` (必要なら.Mermaidで書く。) 。
 
 ### フェーズ1: ビルド環境と依存ライブラリ整備 (3日)
 - `COM_Nostr_Native.vcxproj` に C++20 / マルチバイト禁止 (Unicode 固定) / Treat warnings as errors を設定。
