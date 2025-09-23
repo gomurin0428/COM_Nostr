@@ -24,6 +24,11 @@
 - README/TROUBLESHOOTING/TEXT_FILE_OVERVIEW を更新し、WinHTTP ハンドシェイク要件 (`Sec-WebSocket-Protocol: nostr`) や新規ファイル概要を追記。
 - 2025-09-23T21:49:09+09:00 GitHub Issue #1 (WinHTTPベースWebSocketをIXWebSocketへ置き換える) を作成し、IXWebSocket移行計画を記載。
 - 2025-09-23T21:53:53+09:00 TROUBLESHOOTING.md に pwsh 実行時のパースエラー回避手順を追記し、TEXT_FILE_OVERVIEW.md を最新化。
+- 2025-09-23T22:11:30+09:00 IXWebSocket をサブモジュールとして導入するための依存ビルド確認 (`build/native-deps.ps1`) 実行準備。
+- 2025-09-23T22:13:36+09:00 `build/native-deps.ps1 -Configuration Debug` を実行したが、PATH に cmake が見つからず失敗したことを確認。
+- 2025-09-23T22:16:26+09:00 Visual Studio 同梱 CMake (`CommonExtensions/Microsoft/CMake`) を PATH へ一時追加して再実行予定。
+- 2025-09-23T22:17:37+09:00 Debug 構成の `build/native-deps.ps1` を再実行したが、libsecp256k1 が共有ライブラリとして構成され `secp256k1.lib` が出力されなかったためスクリプトが失敗。
+- 2025-09-23T22:18:26+09:00 `build/native-deps.ps1 -Clean -Configuration Debug` で静的ライブラリ再生成を試行予定 (BUILD_SHARED_LIBS=OFF を追加済み)。
 
 ### 2025-09-23 Codex 調査メモ
 
@@ -37,3 +42,22 @@
 - 2025-09-23T12:35:48Z ConnectsAndReceivesEndOfStoredEvents単体実行を再試行し、約6秒で成功することを確認。残置していたstrfryコンテナを手動停止し整理。
 - 2025-09-23T12:37:51Z デバッグログ挿入を撤去した最終版でのConnectsAndReceivesEndOfStoredEvents再実行を開始予定。
 - 2025-09-23T12:38:49Z デバッグ用ログを除去した最終版でもConnectsAndReceivesEndOfStoredEventsが約6秒で成功することを確認。
+
+## 2025-09-24
+- 2025-09-24T05:37:14+09:00 Serena MCPツールの動作確認としてプロジェクト COM_Nostr をアクティブ化し、serena__list_dir でルート構造を取得できることを確認。
+- 2025-09-24T05:41:02+09:00 build/native-deps.ps1 の Debug/Release ビルドを再実行する前に CMake/PATH 状況を確認開始。
+- 2025-09-24T05:41:55+09:00 Visual Studio 付属 cmake を PATH に追加して build/native-deps.ps1 を Debug/Release で実行予定。
+- 2025-09-24T05:42:26+09:00 build/native-deps.ps1 実行で libsecp256k1 の extrakeys 無効化エラーが発生したため、CMake オプション修正が必要と判断。
+- 2025-09-24T05:43:06+09:00 build/native-deps.ps1 に cmake パス自動検出および extrakeys 有効化を追加後、再実行を行う。
+- 2025-09-24T05:45:10+09:00 cmake --install の出力を確認するため Debug 構成で手動インストールを試行。
+- 2025-09-24T05:46:08+09:00 build/native-deps.ps1 -Clean -Configuration Debug,Release を再実行して自動化を検証。
+- 2025-09-24T05:48:18+09:00 CMake install prefix の正規化と終了コード検査を build/native-deps.ps1 に追加。
+- 2025-09-24T05:48:36+09:00 修正後の build/native-deps.ps1 を -Clean 付きで再実行し、libsecp256k1/IXWebSocket のビルド・配置確認。
+- 2025-09-24T05:50:25+09:00 build/native-deps.ps1 の lib ファイル検証を libsecp256k1.lib / secp256k1.lib 両対応に修正。
+- 2025-09-24T05:50:37+09:00 修正後の build/native-deps.ps1 を -Clean で再実行して成果物配置を確認。
+- 2025-09-24T05:52:49+09:00 build/native-deps.ps1 のライブラリ検証修正後、再度 -Clean でビルドを実行。
+- 2025-09-24T05:54:26+09:00 COM_Nostr_Native.vcxproj を Debug/Release|x64 で msbuild 実行し、IXWebSocket サブモジュール導入後のリンク確認を行う。
+- 2025-09-24T05:55:17+09:00 COM_Nostr_Native.vcxproj (Debug/Release|x64) の msbuild が成功し、ixwebsocket.lib 連携後もビルドが通ることを確認。
+- 2025-09-24T05:58:46+09:00 README.md/TROUBLESHOOTING.md を更新し、IXWebSocket サブモジュールのビルド手順と CMake 自動検出仕様を反映。
+- 2025-09-24T05:59:04+09:00 external/IXWebSocket/README.port.md を新規作成し、追跡コミット・ビルドオプション・ライセンス確認結果を記録。
+- 2025-09-24T06:05:43+09:00 IXWebSocket ポートメモを docs/IXWebSocket_port.md に移動し、README の参照先を更新。
