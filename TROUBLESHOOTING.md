@@ -5,6 +5,8 @@
 - QueueOverflowStrategy を Throw に設定した状態で購読コールバックが長時間ブロックすると、Subscription queue overflow. で CLOSED になる。MaxQueueLength を十分に確保するか、DropOldest に切り替えてイベントを間引いてください。
 - Docker 上の strfry リレーを再起動するテスト (RestartAsync) を実行する際は、既存コンテナとポート競合しないことを確認してください。停止済みでも --rm オプションが動作しない環境では手動で docker stop が必要です。
 - RestartAsync は毎回コンテナ名を再生成するため、テストが異常終了した場合は docker ps -a で孤立した strfry-test-* を停止・削除してから再実行してください。
+- `COM_Nostr_Native` の MIDL が `MIDL2025: ... near "IDispatch"` で停止する場合は、IDL 内の各 `coclass` で `[default] interface IDispatch;` のように `interface` キーワード付きで既定インターフェイスを宣言しているか確認し、修正後に `msbuild COM_Nostr_Native.vcxproj /t:Clean;Build /p:Configuration=Debug /p:Platform=x64` を実行する。
+- `COM_Nostr_NativePS` ビルドで "MIDL will not generate DLLDATA.C" が出た場合は、既存の生成済み `*_p.c`/`dlldata.c` を探す代わりに `Stub.cpp` が配置されているかを確認し、`msbuild COM_Nostr_NativePS.vcxproj /t:Clean;Build /p:Configuration=Debug /p:Platform=x64` を実行してスタブ DLL を再生成する。
 
 - Setup_COM_Nostr で生成した MSI を非管理者セッションで実行すると `DllRegisterServer failed with error 0x80004005` などの自己登録失敗が発生する。管理者権限で実行し、事前に .NET 8 Desktop Runtime (x64) をインストールしてください。
 

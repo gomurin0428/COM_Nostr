@@ -10,6 +10,7 @@
 | `COM_Nostr/COM_Nostr.csproj` | COM 対応の .NET 8 プロジェクト設定と NBitcoin.Secp256k1 依存パッケージに加え、生成済み `COM_Nostr.tlb` をアセンブリへ埋め込む設定。 |
 | `COM_Nostr/COM_Nostr.idl` | COM 公開インターフェイスと列挙体、DTO コクラスをまとめた IDL 定義。タイプライブラリ生成時の基準にする。 |
 | `COM_Nostr_Native/COMNostrNative.idl` | C++ ATL 版 `COM_Nostr_Native` のタイプライブラリ定義。COM_Nostr と同じインターフェイス/IID/CLSID を再宣言して移植を支える。 |
+| `COM_Nostr_NativePS/Stub.cpp` | COM_Nostr_NativePS の Proxy/Stubs DLL を最小実装し、Automation 専用構成でもエクスポート関数が登録・解除処理に対応できるよう担保するスタブ。 |
 | `COM_Nostr/Contracts/DataContracts.cs` | COM で公開するイベント、フィルタ、オプション等の DTO クラス群を定義し、`SubscriptionOptions.QueueOverflowStrategy` を追加。 |
 | `COM_Nostr/Contracts/Enums.cs` | リレー/サブスクリプション状態に加え、`QueueOverflowStrategy` 列挙体を提供。 |
 | `COM_Nostr/Contracts/Interfaces.cs` | INostrClient など COM インターフェイス群のメソッド／プロパティ契約を宣言。 |
@@ -42,6 +43,7 @@
 | `UnitTest_COM_Nostr/StrfryRelayHost.cs` | テストごとに strfry コンテナを起動・停止し、`RestartAsync` でリレー再起動シナリオも提供する補助ユーティリティ。 |
 | `UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj` | テストプロジェクトのターゲットフレームワークや参照設定を定義。 |
 | `ImplementationPlan.md` | COM_Nostr 実装フェーズとテスト戦略をまとめた計画ドキュメント (完了タスクはチェックボックスで管理)。 |
+| `history.md` | 日次の作業内容を簡潔に記録する作業ログ。 |
 | `CHANGELOG.md` | リリース履歴（初版 0.1.0 の主要トピック）を記録。 |
 | `docs/phase0_design.md` | フェーズ0で決定したクラス構成、WebSocket/コールバック方針、例外マッピングの詳細設計メモ。 |
 | `docs/installer_regsvr32_plan.md` | MSIでcomhost DLLをregsvr32登録するためのCustom Action追加方針と検証計画。 |

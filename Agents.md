@@ -13,3 +13,4 @@
 - ファイルにアクセス(read/writeどちらでも)する場合は、常にdesktop-commander MCPサーバーを使ってください。
 - Web検索をする場合は、desktop-commander MCPサーバーを使う必要はありません。
 - processのoutputを読むときのタイムアウトは10秒で十分です。もしも不足した時は増やしてください。
+- 今回何をやったのか、history.mdに記載してください。なければ作ってください。

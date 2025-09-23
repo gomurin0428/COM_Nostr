@@ -1,5 +1,5 @@
-// COM_Nostr_Native.idl : COM_Nostr_Native の IDL ソース
-// COM_Nostr で公開している COM インターフェイスを ATL ベースでも同等に提供する。
+// COM_Nostr_Native.idl : IDL definitions for ATL-based COM_Nostr_Native.
+// Mirrors the COM interfaces that COM_Nostr exposes.
 
 import "oaidl.idl";
 import "ocidl.idl";
@@ -176,7 +176,7 @@ library COMNostrNativeLib
     ]
     coclass NostrEvent
     {
-        [default] IDispatch;
+        [default] interface IDispatch;
     };
 
     [
@@ -184,7 +184,7 @@ library COMNostrNativeLib
     ]
     coclass NostrFilter
     {
-        [default] IDispatch;
+        [default] interface IDispatch;
     };
 
     [
@@ -192,7 +192,7 @@ library COMNostrNativeLib
     ]
     coclass NostrTagQuery
     {
-        [default] IDispatch;
+        [default] interface IDispatch;
     };
 
     [
@@ -200,7 +200,7 @@ library COMNostrNativeLib
     ]
     coclass RelayDescriptor
     {
-        [default] IDispatch;
+        [default] interface IDispatch;
     };
 
     [
@@ -208,7 +208,7 @@ library COMNostrNativeLib
     ]
     coclass SubscriptionOptions
     {
-        [default] IDispatch;
+        [default] interface IDispatch;
     };
 
     [
@@ -216,7 +216,7 @@ library COMNostrNativeLib
     ]
     coclass AuthChallenge
     {
-        [default] IDispatch;
+        [default] interface IDispatch;
     };
 
     [
@@ -224,7 +224,7 @@ library COMNostrNativeLib
     ]
     coclass NostrEventDraft
     {
-        [default] IDispatch;
+        [default] interface IDispatch;
     };
 
     [
@@ -232,7 +232,7 @@ library COMNostrNativeLib
     ]
     coclass ClientOptions
     {
-        [default] IDispatch;
+        [default] interface IDispatch;
     };
 
     [
@@ -240,6 +240,6 @@ library COMNostrNativeLib
     ]
     coclass NostrOkResult
     {
-        [default] IDispatch;
+        [default] interface IDispatch;
     };
 };
