@@ -42,7 +42,7 @@
 | `UnitTest_COM_Nostr/NostrAuthTests.cs` | モックセッションで AUTH メッセージや `auth-required` プレフィックスの通知連携を検証する MSTest。 |
 | `UnitTest_COM_Nostr/StrfryRelayHost.cs` | テストごとに strfry コンテナを起動・停止し、`RestartAsync` でリレー再起動シナリオも提供する補助ユーティリティ。 |
 | `UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj` | テストプロジェクトのターゲットフレームワークや参照設定を定義。 |
-| `ImplementationPlan.md` | COM_Nostr 実装フェーズとテスト戦略をまとめた計画ドキュメント (完了タスクはチェックボックスで管理)。 |
+| `ImplementationPlan.md` | COM_Nostr_Native 移植のフェーズ別計画とテスト戦略をまとめた最新の実装ロードマップ。 |
 | `history.md` | 日次の作業内容を簡潔に記録する作業ログ。 |
 | `CHANGELOG.md` | リリース履歴（初版 0.1.0 の主要トピック）を記録。 |
 | `docs/phase0_design.md` | フェーズ0で決定したクラス構成、WebSocket/コールバック方針、例外マッピングの詳細設計メモ。 |
