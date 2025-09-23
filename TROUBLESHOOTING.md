@@ -10,6 +10,7 @@
 - Docker 上の strfry リレーを再起動するテスト (RestartAsync) を実行する際は、既存コンテナとポート競合しないことを確認してください。停止済みでも --rm オプションが動作しない環境では手動で docker stop が必要です。
 - RestartAsync は毎回コンテナ名を再生成するため、テストが異常終了した場合は docker ps -a で孤立した strfry-test-* を停止・削除してから再実行してください。
 - `build/native-deps.ps1` は Visual Studio 2022 の C++ ビルドツールと CMake が PATH に載っていることを前提とする。`cmake` や `ninja` が見つからない場合は「x64 Native Tools Command Prompt for VS 2022」などの開発者コマンドプロンプトから実行するか、`vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64` の出力でインストール有無を確認する。
+- PowerShell 7 (`pwsh`) で `pwsh -Command & { ... }` のようにコマンド引数へ直接スクリプトブロックを渡すと `ScriptBlock should only be specified as a value of the Command parameter.` というパースエラーになる。`-Command "<script>"` の形式で 1 つの文字列としてスクリプト全体を渡すか、`$script = '...'; pwsh -Command $script` として実行すれば意図どおりに動作する。
 - WinHTTP API をリンクし忘れると `LNK2019: unresolved external symbol WinHttpWebSocket*` などのリンク エラーが出る。`COM_Nostr_Native.vcxproj` / `NostrNativeTests.vcxproj` の `<AdditionalDependencies>` に `winhttp.lib` が入っているか確認する。
 - `COM_Nostr_Native` の MIDL が `MIDL2025: ... near "IDispatch"` で停止する場合は、IDL 内の各 `coclass` で `[default] interface IDispatch;` のように `interface` キーワード付きで既定インターフェイスを宣言しているか確認し、修正後に `msbuild COM_Nostr_Native.vcxproj /t:Clean;Build /p:Configuration=Debug /p:Platform=x64` を実行する。
 - `COM_Nostr_NativePS` ビルドで "MIDL will not generate DLLDATA.C" が出た場合は、既存の生成済み `*_p.c`/`dlldata.c` を探す代わりに `Stub.cpp` が配置されているかを確認し、`msbuild COM_Nostr_NativePS.vcxproj /t:Clean;Build /p:Configuration=Debug /p:Platform=x64` を実行してスタブ DLL を再生成する。

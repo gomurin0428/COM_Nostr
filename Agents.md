@@ -7,8 +7,6 @@
 - Nostrの仕様については「Nostrプロトコルの現行仕様まとめ.docx」を参照すること。
 - README.mdに、実現すべきCOMコンポーネントのインターフェイスは記載されています。もしインターフェースに変更があればこれも修正してください。
 - ユニットテストの際は、ローカルにdockerがある前提で、strfryがインストールされている前提でそれを使って行う事。テストケースごとに異なるリレーサーバーを起動すること。docker run --rm -it -p 7777:7777 -v "${hostPath}:/app/strfry-db" --name strfry dockurr/strfryという感じのコマンドでリレーサーバーを起動できる。
-- TEXT_FILE_OVERVIEWに、git管理されている全てのテキストファイルを一覧化して、簡単な概要を記すこと。なければ作ること
-- ファイルを追加・削除・編集したら、TEXT_FILE_OVERVIEW.mdも適宜編集すること。
 - 今後も別の作業者が引っ掛かりうる落とし穴があれば、TROUBLESHOOTING.mdに記載してください。なければ作ってください。
 - ファイルにアクセス(read/writeどちらでも)する場合は、常にdesktop-commander MCPサーバーを使ってください。
 - processのoutputを読むときのタイムアウトは10秒で十分です。もしも不足した時は増やしてください。
@@ -18,4 +16,3 @@
 - .csファイルや.cppファイル、.hファイル以外はserenaのシンボルが効いていないので気を付けてください。直接ファイル編集したほうが良いと思います。get_symbols_overview(serenaの)などのシンボル関係の機能をこれらのファイル以外に使わないでください。
 - .idlファイルにはserenaのシンボルを使った挿入等はできません。Error executing tool: No symbol with name EOF found in file COM_Blob/COMBlob.idlという風に言われます。
 - コマンドを打ってパースエラーが起きたときは、このやり方が正しいということをTROUBLESHOOTING.mdに書いておいてください。
-- 今後やらないといけないことはTODO.mdに、TODO.mdに書いたことの実現計画はリポジトリ直下のPLAN.mdに記載して、互いに紐づくようにしてください。PLAN.mdがなければ作ってください。"PLAN.md"という名前そのままのファイルに書いてください。*PLAN.mdではだめです。

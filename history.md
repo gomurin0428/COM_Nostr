@@ -22,6 +22,8 @@
 - WinHTTP ベースの `NativeHttpClient` と `WinHttpWebSocket` を実装し、`NativeClientResources` でファクトリを束ねた。プロジェクト設定に `winhttp.lib` と `src/runtime` ディレクトリを追加。
 - docker の strfry を動的ポートで起動する `WebSocketHandshakeTests` を追加し、REQ→EOSE の往復を確認するネイティブ MSTest を作成。テスト実行時には専用ボリュームディレクトリを生成して後片付けするようにした。
 - README/TROUBLESHOOTING/TEXT_FILE_OVERVIEW を更新し、WinHTTP ハンドシェイク要件 (`Sec-WebSocket-Protocol: nostr`) や新規ファイル概要を追記。
+- 2025-09-23T21:49:09+09:00 GitHub Issue #1 (WinHTTPベースWebSocketをIXWebSocketへ置き換える) を作成し、IXWebSocket移行計画を記載。
+- 2025-09-23T21:53:53+09:00 TROUBLESHOOTING.md に pwsh 実行時のパースエラー回避手順を追記し、TEXT_FILE_OVERVIEW.md を最新化。
 
 ### 2025-09-23 Codex 調査メモ
 
