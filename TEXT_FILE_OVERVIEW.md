@@ -21,7 +21,7 @@
 | `COM_Nostr_Native/src/runtime/ClientRuntimeOptions.cpp` | ランタイム設定のタイムアウト・UserAgent を保持する `ClientRuntimeOptions` の実装。 |
 | `COM_Nostr_Native/src/runtime/NativeClientResources.cpp` | HTTP/WebSocket/シリアライザのファクトリを束ねる `NativeClientResources` の実装。 |
 | `COM_Nostr_Native/src/runtime/NativeHttpClient.cpp` | WinHTTP で NIP-11 を取得し、Content-Type 検証と supported_nips 抽出を行う HTTP クライアント実装。 |
-| `COM_Nostr_Native/src/runtime/WinHttpWebSocket.cpp` | WinHTTP WebSocket API をラップし、Threadpool ワーカーで受信キューを管理するネイティブ WebSocket 実装。 |
+| `COM_Nostr_Native/src/runtime/WinHttpWebSocket.cpp` | WinHTTP WebSocket API をラップし、Threadpool ワーカーで受信キューを管理するネイティブ WebSocket 実装。WinHTTP の受信タイムアウト (ERROR_WINHTTP_TIMEOUT) を致命扱いせず継続するよう更新。 |
 | `COM_Nostr_NativePS/Stub.cpp` | COM_Nostr_NativePS の Proxy/Stubs DLL を最小実装し、Automation 専用構成でもエクスポート関数が登録・解除処理に対応できるよう担保するスタブ。 |
 | `COM_Nostr/Contracts/DataContracts.cs` | COM で公開するイベント、フィルタ、オプション等の DTO クラス群を定義し、`SubscriptionOptions.QueueOverflowStrategy` を追加。 |
 | `COM_Nostr/Contracts/Enums.cs` | リレー/サブスクリプション状態に加え、`QueueOverflowStrategy` 列挙体を提供。 |

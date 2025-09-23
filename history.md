@@ -22,3 +22,16 @@
 - WinHTTP ベースの `NativeHttpClient` と `WinHttpWebSocket` を実装し、`NativeClientResources` でファクトリを束ねた。プロジェクト設定に `winhttp.lib` と `src/runtime` ディレクトリを追加。
 - docker の strfry を動的ポートで起動する `WebSocketHandshakeTests` を追加し、REQ→EOSE の往復を確認するネイティブ MSTest を作成。テスト実行時には専用ボリュームディレクトリを生成して後片付けするようにした。
 - README/TROUBLESHOOTING/TEXT_FILE_OVERVIEW を更新し、WinHTTP ハンドシェイク要件 (`Sec-WebSocket-Protocol: nostr`) や新規ファイル概要を追記。
+
+### 2025-09-23 Codex 調査メモ
+
+- ConnectsAndReceivesEndOfStoredEvents テストで発生しているハング再現のために、テストコードと WinHttpWebSocket::Receive ループの実装を確認。docker relay 起動処理およびメッセージキューのイベント待ちの挙動に注目。
+- 2025-09-23T10:15Z WinHttpWebSocket::Receiveのキュー処理とConnectsAndReceivesEndOfStoredEventsテストのログ出力を確認。pendingType処理やResetEventの挙動を調査中。
+- 2025-09-23T10:25Z ConnectsAndReceivesEndOfStoredEventsテストを20秒タイムアウトで別プロセス実行開始準備。docker状態はユーザー申告により正常稼働と判断。
+- 2025-09-23T10:35Z ConnectsAndReceivesEndOfStoredEventsテストの再実行を準備。前回は成功したが再現性確認のため2回目を実施。
+- 2025-09-23T12:09:30Z WinHttpWebSocket::ReceiveLoopのイベント制御とstrfryからのEOSE未受信時の挙動を再点検し、テストハング再現のための単独ケース実行(20秒タイムアウト/別プロセス)をこれから実施予定。
+- 2025-09-23T12:12:23Z vstest.console 20秒タイムアウト実行でConnectsAndReceivesEndOfStoredEventsが完了せず、プロセスをKillしてTIMEOUT扱いになったことを確認。strfryコンテナは起動済み。
+- 2025-09-23T12:20:13Z WinHttpWebSocket::ReceiveLoopでWinHTTPタイムアウトを非致命扱いに修正し、ConnectsAndReceivesEndOfStoredEventsテストを20秒タイムアウトで再実行予定。
+- 2025-09-23T12:35:48Z ConnectsAndReceivesEndOfStoredEvents単体実行を再試行し、約6秒で成功することを確認。残置していたstrfryコンテナを手動停止し整理。
+- 2025-09-23T12:37:51Z デバッグログ挿入を撤去した最終版でのConnectsAndReceivesEndOfStoredEvents再実行を開始予定。
+- 2025-09-23T12:38:49Z デバッグ用ログを除去した最終版でもConnectsAndReceivesEndOfStoredEventsが約6秒で成功することを確認。

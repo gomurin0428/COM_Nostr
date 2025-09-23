@@ -396,6 +396,11 @@ namespace com::nostr::native
             const HRESULT hr = WinHttpWebSocketReceive(webSocket_.Get(), buffer.data(), static_cast<DWORD>(buffer.size()), &bytesRead, &frameType);
             if (FAILED(hr))
             {
+                if (hr == HRESULT_FROM_WIN32(ERROR_WINHTTP_TIMEOUT))
+                {
+                    continue;
+                }
+
                 break;
             }
 

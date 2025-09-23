@@ -12,6 +12,8 @@
 #include <limits>
 #include <random>
 #include <sstream>
+#include <iomanip>
+#include <fstream>
 #include <string>
 #include <thread>
 
@@ -150,7 +152,13 @@ namespace com::nostr::native::tests
             StrfryRelayHost relay;
             Assert::IsTrue(relay.Start(), L"Failed to start strfry docker container.");
 
-            ClientRuntimeOptions options;
+                        ClientRuntimeOptions options;
+            auto logMessage = [](const std::wstring& message)
+            {
+                std::wofstream trace(L"TestResults\\ConnectsAndReceives.trace.log", std::ios::app);
+                trace << message << std::endl;
+            };
+            logMessage(L"=== Test start ===");
             options.SetUserAgent(L"COM_Nostr_NativeTests/1.0");
             options.SetConnectTimeout(std::chrono::seconds(5));
             options.SetReceiveTimeout(std::chrono::seconds(5));
@@ -170,7 +178,7 @@ namespace com::nostr::native::tests
                     }
                 };
 
-                for (int attempt = 0; attempt < 20; ++attempt)
+                for (int attempt = 0; attempt < 1; ++attempt)
                 {
                     HttpHandle session{ WinHttpOpen(options.UserAgent().c_str(), WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0) };
                     if (!session.handle)
@@ -223,7 +231,7 @@ namespace com::nostr::native::tests
 
             WinHttpWebSocket socket;
             HRESULT hr = E_FAIL;
-            for (int attempt = 0; attempt < 10; ++attempt)
+            for (int attempt = 0; attempt < 1; ++attempt)
             {
                 hr = socket.Connect(relay.WebSocketUrl(), options);
                 if (SUCCEEDED(hr))
@@ -237,20 +245,32 @@ namespace com::nostr::native::tests
             Assert::AreEqual(S_OK, hr, L"Failed to establish WebSocket connection to strfry.");
 
             const std::string requestText = R"(["REQ","native-test",{"kinds":[1],"limit":1}])";
-            const std::vector<uint8_t> requestPayload(requestText.begin(), requestText.end());
+                        const std::vector<uint8_t> requestPayload(requestText.begin(), requestText.end());
+            {
+                std::wstringstream log;
+                log << L"REQ bytes=" << requestPayload.size() << L" content=" << std::wstring(requestText.begin(), requestText.end());
+                logMessage(log.str());
+            }
             Assert::AreEqual(S_OK, socket.SendText(requestPayload, true));
 
             bool eoseReceived = false;
             for (int attempt = 0; attempt < 4 && !eoseReceived; ++attempt)
             {
                 NativeWebSocketMessage message;
-                const HRESULT receiveHr = socket.Receive(10000, message);
+                                const HRESULT receiveHr = socket.Receive(10000, message);
+                {
+                    std::wstringstream log;
+                    log << L"receive attempt=" << attempt << L" hr=0x" << std::hex << receiveHr;
+                    logMessage(log.str());
+                }
                 Assert::AreEqual(S_OK, receiveHr, L"Failed to receive WebSocket message.");
 
-                const std::string payload(message.payload.begin(), message.payload.end());
+                                const std::string payload(message.payload.begin(), message.payload.end());
+                logMessage(std::wstring(L"payload: ") + std::wstring(payload.begin(), payload.end()));
                 const auto json = nlohmann::json::parse(payload);
                 Assert::IsTrue(json.is_array(), L"Unexpected non-array JSON payload.", LINE_INFO());
-                const std::string messageType = json.at(0).get<std::string>();
+                                const std::string messageType = json.at(0).get<std::string>();
+                logMessage(std::wstring(L"messageType: ") + std::wstring(messageType.begin(), messageType.end()));
                 if (messageType == "EOSE")
                 {
                     Assert::AreEqual<std::string>("native-test", json.at(1).get<std::string>());
@@ -264,3 +284,22 @@ namespace com::nostr::native::tests
         }
     };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
