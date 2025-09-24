@@ -95,15 +95,8 @@ if (-not (Test-Path (Join-Path $secpRoot '.git'))) {
     throw "libsecp256k1 submodule が存在しません。`git submodule update --init --recursive` を実行してください。"
 }
 
-$ixRoot = Join-Path $repoRoot 'external\IXWebSocket'
-if (-not (Test-Path (Join-Path $ixRoot '.git'))) {
-    throw "IXWebSocket submodule が存在しません。`git submodule update --init --recursive` を実行してください。"
-}
-
 $secpBuildRoot = Join-Path $secpRoot 'build'
 $secpPackageRoot = Join-Path $repoRoot 'packages\native\libsecp256k1\x64'
-$ixBuildRoot = Join-Path $ixRoot 'build'
-$ixPackageRoot = Join-Path $repoRoot 'packages\native\ixwebsocket\x64'
 
 if ($Clean) {
     if (Test-Path $secpBuildRoot) {
@@ -111,12 +104,6 @@ if ($Clean) {
     }
     if (Test-Path $secpPackageRoot) {
         Remove-Item $secpPackageRoot -Recurse -Force
-    }
-    if (Test-Path $ixBuildRoot) {
-        Remove-Item $ixBuildRoot -Recurse -Force
-    }
-    if (Test-Path $ixPackageRoot) {
-        Remove-Item $ixPackageRoot -Recurse -Force
     }
 }
 
@@ -169,43 +156,4 @@ foreach ($config in ($Configuration | Sort-Object -Unique)) {
         throw "secp256k1 static library が $installDir に見つかりません。"
     }
 
-    $ixConfigDir = Join-Path $ixBuildRoot $config
-    $ixInstallDir = Join-Path $ixPackageRoot $config
-    New-Item -ItemType Directory -Path $ixConfigDir -Force | Out-Null
-    New-Item -ItemType Directory -Path $ixInstallDir -Force | Out-Null
-    $ixInstallDirNormalized = ($ixInstallDir -replace '\\','/')
-    $ixCmakeArgs = @(
-        '-S', $ixRoot,
-        '-B', $ixConfigDir,
-        '-G', 'Visual Studio 17 2022',
-        '-A', 'x64',
-        '-DUSE_TLS=OFF',
-        '-DUSE_ZLIB=OFF',
-        '-DBUILD_DEMO=OFF',
-        '-DIXWEBSOCKET_INSTALL=ON',
-        "-DCMAKE_INSTALL_PREFIX=$ixInstallDirNormalized"
-    )
-
-    Write-Host "[native-deps] Configure IXWebSocket $config"
-    cmake @ixCmakeArgs | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "cmake configure failed for IXWebSocket ($config)"
-    }
-
-    Write-Host "[native-deps] Build IXWebSocket $config"
-    cmake --build $ixConfigDir --config $config | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "cmake build failed for IXWebSocket ($config)"
-    }
-
-    Write-Host "[native-deps] Install IXWebSocket $config"
-    cmake --install $ixConfigDir --config $config | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "cmake install failed for IXWebSocket ($config)"
-    }
-
-    $ixLibPath = Join-Path $ixInstallDir 'lib\ixwebsocket.lib'
-    if (-not (Test-Path $ixLibPath)) {
-        throw "ixwebsocket.lib が $ixLibPath に見つかりません。"
-    }
 }

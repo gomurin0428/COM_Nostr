@@ -95,3 +95,9 @@
 - 2025-09-25T07:51:40+09:00 上記 `msbuild` が 12.9 秒で成功。UnitTest_COM_Nostr で CS8604 警告 (RecordingEventCallback.OnEvent の null 可能性) が残存するがエラーなしを確認。
 - 2025-09-25T07:52:05+09:00 RecordingEventCallback の null 安全化後の警告解消を確認するため、`msbuild COM_Nostr.sln /p:Configuration=Debug /p:Platform=x64` を再実行予定。
 - 2025-09-25T07:52:24+09:00 再実行した `msbuild` が 1.6 秒で成功し、CS8604 警告が解消されたことを確認。
+
+## 2025-09-25
+- 2025-09-25T08:03:54+09:00 build/native-deps.ps1 -Configuration Debug をタイムアウト20秒で実行予定 (IXWebSocket削除後のスクリプト確認)。
+- 2025-09-25T08:04:35+09:00 build/native-deps.ps1 -Configuration Debug が成功し、libsecp256k1 Debug 生成のみで完了することを確認。
+- 2025-09-25T08:04:46+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で別プロセス実行予定 (IXWebSocket削除後のリンク確認)。
+- 2025-09-25T08:05:19+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 が成功し、WinHTTP 依存のみでビルドが完了することを確認。

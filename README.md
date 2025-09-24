@@ -9,15 +9,15 @@
 - 2025-09-24 時点では `COM_Nostr_Native` の公開 CoClass (`NostrClient` / `NostrRelaySession` / `NostrSubscription` など) は未実装のため、`regsvr32` 成功後でも CLSID `{7d3091fe-ca18-49ba-835c-012991076660}` から COM オブジェクトを生成できず `CLASS_E_CLASSNOTAVAILABLE` になります。CoClass 実装と ATL オブジェクトマップを追加した後に再ビルド・再登録してください。
 
 ## Native ビルド準備 (C++/ATL)
-1. `git submodule update --init --recursive` を実行し、`external/libsecp256k1` と `external/IXWebSocket` を取得する。
-2. Visual Studio 2022 (v143) と CMake が利用できる環境で `pwsh ./build/native-deps.ps1` を実行し、`packages/native/libsecp256k1/x64/<Config>/lib/libsecp256k1.lib` と `packages/native/ixwebsocket/x64/<Config>/lib/ixwebsocket.lib` を生成する。
+1. `git submodule update --init external/libsecp256k1` を実行し、libsecp256k1 サブモジュールを取得する (初回構築では `--recursive` を併用)。
+2. Visual Studio 2022 (v143) と CMake が利用できる環境で `pwsh ./build/native-deps.ps1` を実行し、`packages/native/libsecp256k1/x64/<Config>/lib/libsecp256k1.lib` を生成する。
    - 再生成したい場合は `-Clean` オプションを付与する。
    - スクリプトは `cmake` が PATH に無い場合でも Visual Studio 2022 同梱の `Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin` を自動検出して利用する。別環境の CMake を使いたい場合は事前に PATH を上書きする。
-   - libsecp256k1 は静的ライブラリとしてビルドし、`ECDH`/`EXTRAKEYS`/`SCHNORRSIG` モジュールを有効化している。IXWebSocket は TLS/Zlib を無効化した静的ライブラリを生成する。`wss://` や permessage-deflate を利用する場合は OpenSSL/MbedTLS/Zlib を用意し、CMake オプションを手動で有効化する。
+   - libsecp256k1 は静的ライブラリとしてビルドし、`ECDH`/`EXTRAKEYS`/`SCHNORRSIG` モジュールを有効化している。
    - `packages/native/nlohmann_json/include/nlohmann/json.hpp` が未配置または破損している場合は、同スクリプトが nlohmann/json 3.11.3 を SHA-256 検証付きでダウンロードし再配置する。
 3. `COM_Nostr_Native.vcxproj` は C++20 固定かつ Werror (`/WX`) に設定されているため、警告を解消してからコミットする。
 4. JSON 変換にはリポジトリ同梱の `packages/native/nlohmann_json` (nlohmann/json 3.11.3) をプリコンパイルヘッダー経由で利用する。
-- 外部ライブラリとライセンス: `libsecp256k1` (MIT/BSD-2-Clause 相当)、`IXWebSocket` (BSD-3-Clause、`external/IXWebSocket/LICENSE.txt`)、`nlohmann/json` (MIT)。配布物へは各ライセンス表記を同梱する。
+- 外部ライブラリとライセンス: `libsecp256k1` (MIT/BSD-2-Clause 相当)、`nlohmann/json` (MIT)。WinHTTP は Windows 標準コンポーネントのため追加配布不要。
 
 ## 公開 COM インターフェイス一覧
 | インターフェイス | 役割 |
@@ -228,7 +228,7 @@ finally {
 ## ドキュメント
 - 設計メモ: `docs/phase0_design.md`
 - 仕様要約: `Nostrプロトコルの現行仕様まとめ.docx`
-- 依存モジュール: `docs/IXWebSocket_port.md`
+- ネイティブ移植メモ: `docs/native_port_overview.md`
 - テキストファイル一覧: `TEXT_FILE_OVERVIEW.md`
 
 
