@@ -1,3 +1,277 @@
 HKCR
 {
+	ForceRemove COMNostrNativeLib.NostrClient.1
+	{
+		CLSID = s '{7d3091fe-ca18-49ba-835c-012991076660}'
+	}
+	ForceRemove COMNostrNativeLib.NostrClient
+	{
+		CurVer = s 'COMNostrNativeLib.NostrClient.1'
+	}
+	ForceRemove COMNostrNativeLib.NostrRelaySession.1
+	{
+		CLSID = s '{e53e9b56-da8d-4064-8df6-5563708f65a5}'
+	}
+	ForceRemove COMNostrNativeLib.NostrRelaySession
+	{
+		CurVer = s 'COMNostrNativeLib.NostrRelaySession.1'
+	}
+	ForceRemove COMNostrNativeLib.NostrSubscription.1
+	{
+		CLSID = s '{175bd625-18d9-42bd-b75a-0642abf029b4}'
+	}
+	ForceRemove COMNostrNativeLib.NostrSubscription
+	{
+		CurVer = s 'COMNostrNativeLib.NostrSubscription.1'
+	}
+	ForceRemove COMNostrNativeLib.NostrSigner.1
+	{
+		CLSID = s '{ae9df2b5-8650-4a51-8bb2-1df35a48a6ec}'
+	}
+	ForceRemove COMNostrNativeLib.NostrSigner
+	{
+		CurVer = s 'COMNostrNativeLib.NostrSigner.1'
+	}
+	ForceRemove COMNostrNativeLib.NostrEvent.1
+	{
+		CLSID = s '{56e23422-5e99-4be6-a29d-fb60eccb6559}'
+	}
+	ForceRemove COMNostrNativeLib.NostrEvent
+	{
+		CurVer = s 'COMNostrNativeLib.NostrEvent.1'
+	}
+	ForceRemove COMNostrNativeLib.NostrFilter.1
+	{
+		CLSID = s '{ed57aa18-b9fe-4861-a6e9-66d68b9a0c49}'
+	}
+	ForceRemove COMNostrNativeLib.NostrFilter
+	{
+		CurVer = s 'COMNostrNativeLib.NostrFilter.1'
+	}
+	ForceRemove COMNostrNativeLib.NostrTagQuery.1
+	{
+		CLSID = s '{4ed88857-740f-451e-8d1f-5959c89f31a2}'
+	}
+	ForceRemove COMNostrNativeLib.NostrTagQuery
+	{
+		CurVer = s 'COMNostrNativeLib.NostrTagQuery.1'
+	}
+	ForceRemove COMNostrNativeLib.RelayDescriptor.1
+	{
+		CLSID = s '{43910586-5980-4cbc-8936-ea8d1d2cb584}'
+	}
+	ForceRemove COMNostrNativeLib.RelayDescriptor
+	{
+		CurVer = s 'COMNostrNativeLib.RelayDescriptor.1'
+	}
+	ForceRemove COMNostrNativeLib.SubscriptionOptions.1
+	{
+		CLSID = s '{b8522064-312e-4ce0-b4c5-e7d59a76d073}'
+	}
+	ForceRemove COMNostrNativeLib.SubscriptionOptions
+	{
+		CurVer = s 'COMNostrNativeLib.SubscriptionOptions.1'
+	}
+	ForceRemove COMNostrNativeLib.AuthChallenge.1
+	{
+		CLSID = s '{83822390-3a93-4edb-ba46-2f2dc960d08d}'
+	}
+	ForceRemove COMNostrNativeLib.AuthChallenge
+	{
+		CurVer = s 'COMNostrNativeLib.AuthChallenge.1'
+	}
+	ForceRemove COMNostrNativeLib.NostrEventDraft.1
+	{
+		CLSID = s '{38c8b451-af80-41d6-ae98-36ab672412e7}'
+	}
+	ForceRemove COMNostrNativeLib.NostrEventDraft
+	{
+		CurVer = s 'COMNostrNativeLib.NostrEventDraft.1'
+	}
+	ForceRemove COMNostrNativeLib.ClientOptions.1
+	{
+		CLSID = s '{21831b74-c106-4809-b47d-1bec57addc7c}'
+	}
+	ForceRemove COMNostrNativeLib.ClientOptions
+	{
+		CurVer = s 'COMNostrNativeLib.ClientOptions.1'
+	}
+	ForceRemove COMNostrNativeLib.NostrOkResult.1
+	{
+		CLSID = s '{9b7fce0f-14c5-43ec-97f0-b968f479f3a1}'
+	}
+	ForceRemove COMNostrNativeLib.NostrOkResult
+	{
+		CurVer = s 'COMNostrNativeLib.NostrOkResult.1'
+	}
+	ForceRemove TypeLib
+	{
+		ForceRemove {73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}
+		{
+		}
+	}
+	ForceRemove AppID
+	{
+		'{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}' = s 'COM_Nostr_Native'
+	}
+
+	NoRemove CLSID
+	{
+		ForceRemove {7d3091fe-ca18-49ba-835c-012991076660} = s 'NostrClient class'
+		{
+			ProgID = s 'COMNostrNativeLib.NostrClient.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.NostrClient'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {e53e9b56-da8d-4064-8df6-5563708f65a5} = s 'NostrRelaySession class'
+		{
+			ProgID = s 'COMNostrNativeLib.NostrRelaySession.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.NostrRelaySession'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {175bd625-18d9-42bd-b75a-0642abf029b4} = s 'NostrSubscription class'
+		{
+			ProgID = s 'COMNostrNativeLib.NostrSubscription.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.NostrSubscription'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {ae9df2b5-8650-4a51-8bb2-1df35a48a6ec} = s 'NostrSigner class'
+		{
+			ProgID = s 'COMNostrNativeLib.NostrSigner.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.NostrSigner'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {56e23422-5e99-4be6-a29d-fb60eccb6559} = s 'NostrEvent class'
+		{
+			ProgID = s 'COMNostrNativeLib.NostrEvent.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.NostrEvent'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {ed57aa18-b9fe-4861-a6e9-66d68b9a0c49} = s 'NostrFilter class'
+		{
+			ProgID = s 'COMNostrNativeLib.NostrFilter.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.NostrFilter'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {4ed88857-740f-451e-8d1f-5959c89f31a2} = s 'NostrTagQuery class'
+		{
+			ProgID = s 'COMNostrNativeLib.NostrTagQuery.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.NostrTagQuery'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {43910586-5980-4cbc-8936-ea8d1d2cb584} = s 'RelayDescriptor class'
+		{
+			ProgID = s 'COMNostrNativeLib.RelayDescriptor.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.RelayDescriptor'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {b8522064-312e-4ce0-b4c5-e7d59a76d073} = s 'SubscriptionOptions class'
+		{
+			ProgID = s 'COMNostrNativeLib.SubscriptionOptions.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.SubscriptionOptions'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {83822390-3a93-4edb-ba46-2f2dc960d08d} = s 'AuthChallenge class'
+		{
+			ProgID = s 'COMNostrNativeLib.AuthChallenge.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.AuthChallenge'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {38c8b451-af80-41d6-ae98-36ab672412e7} = s 'NostrEventDraft class'
+		{
+			ProgID = s 'COMNostrNativeLib.NostrEventDraft.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.NostrEventDraft'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {21831b74-c106-4809-b47d-1bec57addc7c} = s 'ClientOptions class'
+		{
+			ProgID = s 'COMNostrNativeLib.ClientOptions.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.ClientOptions'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+		ForceRemove {9b7fce0f-14c5-43ec-97f0-b968f479f3a1} = s 'NostrOkResult class'
+		{
+			ProgID = s 'COMNostrNativeLib.NostrOkResult.1'
+			VersionIndependentProgID = s 'COMNostrNativeLib.NostrOkResult'
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087}'
+			Version = s '1.0'
+		}
+	}
 }

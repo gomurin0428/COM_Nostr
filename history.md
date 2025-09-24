@@ -73,3 +73,7 @@
 - 2025-09-24T19:19:16+09:00 build/native-deps.ps1 -Configuration Release が成功し、Release 向け依存ライブラリを配置完了。
 - 2025-09-24T19:19:26+09:00 依存生成後に COM_Nostr_Native.vcxproj (Release|x64) の msbuild を再実行予定。
 - 2025-09-24T19:19:43+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Release /p:Platform=x64 が成功し、Debug/Release の両構成でビルド可能になったことを確認。
+- 2025-09-24T20:20:39+09:00 COM_Nostr_Native.rgs 更新後の確認として、`msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` をタイムアウト20秒で別プロセス実行開始予定。
+- 2025-09-24T20:21:21+09:00 `desktop-commander__start_process` 経由の PowerShell 起動が 0x8009001d で失敗したため、`shell` コマンドで同一ビルドを再実行予定。
+- 2025-09-24T20:21:33+09:00 `shell` で `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` をタイムアウト20秒で実行開始。
+- 2025-09-24T20:21:56+09:00 `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` が 1.63 秒で成功し、rgs 更新後もビルドが通ることを確認。
