@@ -16,3 +16,5 @@
 - .csファイルや.cppファイル、.hファイル以外はserenaのシンボルが効いていないので気を付けてください。直接ファイル編集したほうが良いと思います。get_symbols_overview(serenaの)などのシンボル関係の機能をこれらのファイル以外に使わないでください。
 - .idlファイルにはserenaのシンボルを使った挿入等はできません。Error executing tool: No symbol with name EOF found in file COM_Blob/COMBlob.idlという風に言われます。
 - コマンドを打ってパースエラーが起きたときは、このやり方が正しいということをTROUBLESHOOTING.mdに書いておいてください。
+- プロジェクトを新しく作るときは必ず確認してください。
+- ユニットテストプロジェクトは必ずCSHarpで書いてください。C++ ATLのテストは、COMコンポーネントの登録をしたうえでCSHARPのユニットテストプロジェクトで行います。
