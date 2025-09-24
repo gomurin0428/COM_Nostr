@@ -33,6 +33,237 @@ public sealed class NostrClientTests
     }
 
     [TestMethod]
+    public void InitializeTwice_ThrowsAlreadyInitialized()
+    {
+        var client = new COMNostrNativeLib.NostrClient();
+        COMNostrNativeLib.ClientOptions? firstOptions = null;
+        COMNostrNativeLib.ClientOptions? secondOptions = null;
+
+        try
+        {
+            firstOptions = CreateDefaultClientOptions();
+            client.Initialize(firstOptions);
+
+            secondOptions = CreateDefaultClientOptions();
+            var ex = Assert.ThrowsException<COMException>(() => client.Initialize(secondOptions));
+            Assert.AreEqual(unchecked((int)0x88990005), ex.HResult, "二重初期化時のHRESULTが不正です。");
+        }
+        finally
+        {
+            ReleaseComObject(secondOptions);
+            ReleaseComObject(firstOptions);
+            ReleaseComObject(client);
+        }
+    }
+
+    [TestMethod]
+    public async Task ConnectRelay_ListRelaysReflectStateAsync()
+    {
+        Assert.IsNotNull(_relayHost, "Strfry relay host is not initialised.");
+
+        var client = new COMNostrNativeLib.NostrClient();
+        COMNostrNativeLib.ClientOptions? options = null;
+        COMNostrNativeLib.RelayDescriptor? relayDescriptor = null;
+        COMNostrNativeLib.INostrRelaySession? session = null;
+
+        try
+        {
+            options = CreateDefaultClientOptions();
+            client.Initialize(options);
+
+            relayDescriptor = new COMNostrNativeLib.RelayDescriptor
+            {
+                Url = _relayHost!.RelayWebSocketUrl,
+                ReadEnabled = true,
+                WriteEnabled = true
+            };
+
+            var authCallback = new NullAuthCallback();
+            session = client.ConnectRelay(relayDescriptor, authCallback);
+            await WaitForSessionStateAsync(session, COMNostrNativeLib.RelaySessionState.RelaySessionState_Connected, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+
+            Assert.IsTrue(client.HasRelay(_relayHost.RelayWebSocketUrl), "HasRelay が接続済みURLを返しません。");
+
+            var relays = client.ListRelays() ?? Array.Empty<string>();
+            CollectionAssert.Contains(relays, _relayHost.RelayWebSocketUrl, "ListRelays に接続済みURLが含まれていません。");
+
+            client.DisconnectRelay(_relayHost.RelayWebSocketUrl);
+            await WaitForSessionStateAsync(session, COMNostrNativeLib.RelaySessionState.RelaySessionState_Disconnected, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+
+            Assert.IsFalse(client.HasRelay(_relayHost.RelayWebSocketUrl), "DisconnectRelay 後も HasRelay が true のままです。");
+
+            relays = client.ListRelays() ?? Array.Empty<string>();
+            CollectionAssert.DoesNotContain(relays, _relayHost.RelayWebSocketUrl, "DisconnectRelay 後も ListRelays に URL が残っています。");
+        }
+        finally
+        {
+            ReleaseComObject(session);
+            ReleaseComObject(relayDescriptor);
+            ReleaseComObject(options);
+            ReleaseComObject(client);
+        }
+    }
+
+    [TestMethod]
+    public async Task PublishEvent_WithoutSigner_ThrowsSignerMissingAsync()
+    {
+        Assert.IsNotNull(_relayHost, "Strfry relay host is not initialised.");
+
+        var client = new COMNostrNativeLib.NostrClient();
+        COMNostrNativeLib.ClientOptions? options = null;
+        COMNostrNativeLib.RelayDescriptor? relayDescriptor = null;
+        COMNostrNativeLib.NostrEvent? nostrEvent = null;
+        COMNostrNativeLib.INostrRelaySession? session = null;
+
+        try
+        {
+            options = CreateDefaultClientOptions();
+            client.Initialize(options);
+
+            relayDescriptor = new COMNostrNativeLib.RelayDescriptor
+            {
+                Url = _relayHost!.RelayWebSocketUrl,
+                ReadEnabled = true,
+                WriteEnabled = true
+            };
+
+            var authCallback = new NullAuthCallback();
+            session = client.ConnectRelay(relayDescriptor, authCallback);
+            await WaitForSessionStateAsync(session, COMNostrNativeLib.RelaySessionState.RelaySessionState_Connected, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+
+            nostrEvent = new COMNostrNativeLib.NostrEvent
+            {
+                Kind = 1,
+                CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                Content = $"missing signer test {Guid.NewGuid():N}"
+            };
+
+            var ex = Assert.ThrowsException<COMException>(() => client.PublishEvent(_relayHost.RelayWebSocketUrl, nostrEvent));
+            Assert.AreEqual(unchecked((int)0x88990001), ex.HResult, "署名者未設定時のHRESULTが不正です。");
+        }
+        finally
+        {
+            if (session is not null)
+            {
+                try
+                {
+                    client.DisconnectRelay(_relayHost!.RelayWebSocketUrl);
+                }
+                catch
+                {
+                }
+            }
+
+            ReleaseComObject(session);
+            ReleaseComObject(nostrEvent);
+            ReleaseComObject(relayDescriptor);
+            ReleaseComObject(options);
+            ReleaseComObject(client);
+        }
+    }
+
+    [TestMethod]
+    public async Task OpenSubscription_StatusTransitionsToActiveAfterEndOfStoredEventsAsync()
+    {
+        Assert.IsNotNull(_relayHost, "Strfry relay host is not initialised.");
+
+        var client = new COMNostrNativeLib.NostrClient();
+        COMNostrNativeLib.ClientOptions? options = null;
+        COMNostrNativeLib.NostrSigner? signer = null;
+        COMNostrNativeLib.RelayDescriptor? relayDescriptor = null;
+        COMNostrNativeLib.SubscriptionOptions? subscriptionOptions = null;
+        COMNostrNativeLib.NostrFilter[]? filters = null;
+        COMNostrNativeLib.INostrSubscription? subscription = null;
+        COMNostrNativeLib.INostrRelaySession? session = null;
+
+        try
+        {
+            options = CreateDefaultClientOptions();
+            client.Initialize(options);
+
+            signer = new COMNostrNativeLib.NostrSigner();
+            client.SetSigner(signer);
+
+            relayDescriptor = new COMNostrNativeLib.RelayDescriptor
+            {
+                Url = _relayHost!.RelayWebSocketUrl,
+                ReadEnabled = true,
+                WriteEnabled = true
+            };
+
+            var authCallback = new NullAuthCallback();
+            session = client.ConnectRelay(relayDescriptor, authCallback);
+            await WaitForSessionStateAsync(session, COMNostrNativeLib.RelaySessionState.RelaySessionState_Connected, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+
+            subscriptionOptions = new COMNostrNativeLib.SubscriptionOptions
+            {
+                KeepAlive = true
+            };
+
+            var publicKey = signer.GetPublicKey();
+            filters = new[]
+            {
+                new COMNostrNativeLib.NostrFilter
+                {
+                    Authors = new[] { publicKey },
+                    Kinds = new[] { 1 },
+                    Since = DateTimeOffset.UtcNow.AddMinutes(-1).ToUnixTimeSeconds()
+                }
+            };
+
+            var callback = new RecordingEventCallback();
+            subscription = client.OpenSubscription(_relayHost.RelayWebSocketUrl, filters, callback, subscriptionOptions);
+
+            await callback.WaitForEndOfStoredEventsAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+
+            Assert.IsFalse(string.IsNullOrWhiteSpace(subscription.Id), "購読IDが空です。");
+            Assert.AreEqual(COMNostrNativeLib.SubscriptionStatus.SubscriptionStatus_Active, subscription.Status, "EOSE 受信後に購読ステータスがActiveになっていません。");
+        }
+        finally
+        {
+            if (subscription is not null)
+            {
+                try
+                {
+                    subscription.Close();
+                }
+                catch
+                {
+                }
+            }
+
+            ReleaseComObject(subscription);
+
+            if (filters is not null)
+            {
+                foreach (var filter in filters)
+                {
+                    ReleaseComObject(filter);
+                }
+            }
+
+            ReleaseComObject(subscriptionOptions);
+
+            if (session is not null)
+            {
+                try
+                {
+                    client.DisconnectRelay(_relayHost!.RelayWebSocketUrl);
+                }
+                catch
+                {
+                }
+            }
+
+            ReleaseComObject(session);
+            ReleaseComObject(relayDescriptor);
+            ReleaseComObject(signer);
+            ReleaseComObject(options);
+            ReleaseComObject(client);
+        }
+    }
+
+    [TestMethod]
     public async Task PublishEvent_ReceivesEventViaSubscription()
     {
         Assert.IsNotNull(_relayHost, "Strfry relay host is not initialised.");
@@ -49,13 +280,7 @@ public sealed class NostrClientTests
 
         try
         {
-            options = new COMNostrNativeLib.ClientOptions
-            {
-                ConnectTimeoutSeconds = 5d,
-                SendTimeoutSeconds = 5d,
-                ReceiveTimeoutSeconds = 5d,
-                UserAgent = "UnitTest_COMNostrNativeLib/1.0"
-            };
+            options = CreateDefaultClientOptions();
             client.Initialize(options);
 
             signer = new COMNostrNativeLib.NostrSigner();
@@ -123,9 +348,9 @@ public sealed class NostrClientTests
                 catch
                 {
                 }
-
-                Marshal.FinalReleaseComObject(subscription);
             }
+
+            ReleaseComObject(subscription);
 
             if (session is not null)
             {
@@ -136,45 +361,24 @@ public sealed class NostrClientTests
                 catch
                 {
                 }
-
-                Marshal.FinalReleaseComObject(session);
             }
 
-            if (nostrEvent is not null)
-            {
-                Marshal.FinalReleaseComObject(nostrEvent);
-            }
+            ReleaseComObject(session);
+            ReleaseComObject(nostrEvent);
 
             if (filters is not null)
             {
                 foreach (var filter in filters)
                 {
-                    Marshal.FinalReleaseComObject(filter);
+                    ReleaseComObject(filter);
                 }
             }
 
-            if (subscriptionOptions is not null)
-            {
-                Marshal.FinalReleaseComObject(subscriptionOptions);
-            }
-
-            if (relayDescriptor is not null)
-            {
-                Marshal.FinalReleaseComObject(relayDescriptor);
-            }
-
-            if (signer is not null)
-            {
-                Marshal.FinalReleaseComObject(signer);
-            }
-
-            if (options is not null)
-            {
-                Marshal.FinalReleaseComObject(options);
-            }
-
-            
-            Marshal.FinalReleaseComObject(client);
+            ReleaseComObject(subscriptionOptions);
+            ReleaseComObject(relayDescriptor);
+            ReleaseComObject(signer);
+            ReleaseComObject(options);
+            ReleaseComObject(client);
         }
     }
 
@@ -193,6 +397,25 @@ public sealed class NostrClientTests
         }
 
         Assert.AreEqual(expected, session.State, "セッションが期待した状態になりませんでした。");
+    }
+
+    private static COMNostrNativeLib.ClientOptions CreateDefaultClientOptions()
+    {
+        return new COMNostrNativeLib.ClientOptions
+        {
+            ConnectTimeoutSeconds = 5d,
+            SendTimeoutSeconds = 5d,
+            ReceiveTimeoutSeconds = 5d,
+            UserAgent = "UnitTest_COMNostrNativeLib/1.0"
+        };
+    }
+
+    private static void ReleaseComObject(object? value)
+    {
+        if (value is not null && Marshal.IsComObject(value))
+        {
+            Marshal.FinalReleaseComObject(value);
+        }
     }
 
     private sealed class NullAuthCallback : COMNostrNativeLib.INostrAuthCallback
@@ -231,7 +454,14 @@ public sealed class NostrClientTests
 
         public void OnEvent(string relayUrl, Object @event)
         {
-            _eventSource.TrySetResult((@event as COMNostrNativeLib.NostrEvent));
+            if (@event is COMNostrNativeLib.NostrEvent nostrEvent)
+            {
+                _eventSource.TrySetResult(nostrEvent);
+            }
+            else
+            {
+                _eventSource.TrySetException(new InvalidCastException($"EVENT ペイロードを COMNostrNativeLib.NostrEvent へ変換できません: {relayUrl}."));
+            }
         }
 
         public void OnNotice(string relayUrl, string message)

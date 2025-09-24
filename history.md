@@ -88,3 +88,10 @@
 - 2025-09-25T04:10:39+09:00 `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` が成功し、スタブ実装追加後もビルド・自己登録が通ることを確認。
 - 2025-09-25T04:18:04+09:00 DTO クラスの CLSID も登録されるようオブジェクトマップを拡張し、同コマンドを再実行予定。
 - 2025-09-25T04:18:31+09:00 `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` が成功し、DTO クラスを含む新オブジェクトマップでもビルド・登録が通ることを確認。
+- 2025-09-25T07:49:51+09:00 UnitTest_COM_Nostr/NostrClientTests.cs に COM_Nostr_Native 完了後にパスする想定の MSTest ケース（Initialize 二重呼び出し、HasRelay/ListRelays、署名者未設定 Publish、EOSE 後の購読状態遷移）を追加。
+- 2025-09-25T07:50:17+09:00 `dotnet build COM_Nostr.sln -c Debug` をタイムアウト20秒で実行開始予定 (UnitTest_COM_Nostr の新規テスト追加後のビルド確認)。
+- 2025-09-25T07:50:50+09:00 上記 `dotnet build` が 2.1 秒で失敗。MSB4278 (VCTargetsPath 欠如) と MSB4803 (.NET Core MSBuild での ResolveComReference 非対応) の既知制限により C++/COM 参照を含むソリューションは dotnet CLI でビルド不可。
+- 2025-09-25T07:51:05+09:00 `msbuild COM_Nostr.sln /p:Configuration=Debug /p:Platform=x64` をタイムアウト20秒で実行開始予定 (dotnet CLI 失敗に伴う Visual Studio MSBuild での再検証)。
+- 2025-09-25T07:51:40+09:00 上記 `msbuild` が 12.9 秒で成功。UnitTest_COM_Nostr で CS8604 警告 (RecordingEventCallback.OnEvent の null 可能性) が残存するがエラーなしを確認。
+- 2025-09-25T07:52:05+09:00 RecordingEventCallback の null 安全化後の警告解消を確認するため、`msbuild COM_Nostr.sln /p:Configuration=Debug /p:Platform=x64` を再実行予定。
+- 2025-09-25T07:52:24+09:00 再実行した `msbuild` が 1.6 秒で成功し、CS8604 警告が解消されたことを確認。
