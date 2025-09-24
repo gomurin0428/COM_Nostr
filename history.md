@@ -61,3 +61,15 @@
 - 2025-09-24T05:58:46+09:00 README.md/TROUBLESHOOTING.md を更新し、IXWebSocket サブモジュールのビルド手順と CMake 自動検出仕様を反映。
 - 2025-09-24T05:59:04+09:00 external/IXWebSocket/README.port.md を新規作成し、追跡コミット・ビルドオプション・ライセンス確認結果を記録。
 - 2025-09-24T06:05:43+09:00 IXWebSocket ポートメモを docs/IXWebSocket_port.md に移動し、README の参照先を更新。
+- 2025-09-24T18:43:13+09:00 `dotnet test UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj -c Debug` をタイムアウト20秒で別プロセス実行開始予定。
+- 2025-09-24T19:03:36+09:00 COM 参照ベースの統合テスト(NostrClient)を追加し、TROUBLESHOOTING.md に Type Library 未登録時の対処を追記。ローカル環境では TLB 未登録のため `msbuild`/`dotnet test` は失敗することを確認。
+- 2025-09-24T19:16:11+09:00 build/native-deps.ps1 で nlohmann/json 3.11.3 の json.hpp を再取得する準備を開始。
+- 2025-09-24T19:16:44+09:00 build/native-deps.ps1 -Configuration Debug を実行し、nlohmann/json 3.11.3 の json.hpp とネイティブ依存を取得済みであることを確認。
+- 2025-09-24T19:17:01+09:00 COM_Nostr_Native.vcxproj (Debug|x64) の msbuild を実行し、json.hpp 取得後のビルドを確認予定。
+- 2025-09-24T19:17:27+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 が成功し、json.hpp 取得後もビルドエラーが発生しないことを確認。
+- 2025-09-24T19:17:39+09:00 COM_Nostr_Native.vcxproj (Release|x64) の msbuild を追加で実行し、両構成でのビルド完了を確認予定。
+- 2025-09-24T19:18:44+09:00 Release|x64 ビルドは依存ライブラリ (ixwebsocket/libsecp256k1) の Release アーティファクト未生成により失敗したため、native-deps.ps1 を Release 構成で再実行する必要があると判断。
+- 2025-09-24T19:18:56+09:00 build/native-deps.ps1 -Configuration Release を実行し、Release 用 ixwebsocket/libsecp256k1 を整備予定。
+- 2025-09-24T19:19:16+09:00 build/native-deps.ps1 -Configuration Release が成功し、Release 向け依存ライブラリを配置完了。
+- 2025-09-24T19:19:26+09:00 依存生成後に COM_Nostr_Native.vcxproj (Release|x64) の msbuild を再実行予定。
+- 2025-09-24T19:19:43+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Release /p:Platform=x64 が成功し、Debug/Release の両構成でビルド可能になったことを確認。

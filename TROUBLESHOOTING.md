@@ -10,6 +10,7 @@
 - Docker 上の strfry リレーを再起動するテスト (RestartAsync) を実行する際は、既存コンテナとポート競合しないことを確認してください。停止済みでも --rm オプションが動作しない環境では手動で docker stop が必要です。
 - RestartAsync は毎回コンテナ名を再生成するため、テストが異常終了した場合は docker ps -a で孤立した strfry-test-* を停止・削除してから再実行してください。
 - `build/native-deps.ps1` は Visual Studio 2022 の C++ ビルドツールと CMake がインストールされていることを前提とする。PATH に `cmake` が無い場合でも標準インストール先 (`Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin`) を自動的に追加するが、別ディレクトリへインストールしている場合は PATH を明示的に調整する。`cmake` や `ninja` が見つからない場合は「x64 Native Tools Command Prompt for VS 2022」などの開発者コマンドプロンプトから実行するか、`vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64` の出力でインストール有無を確認する。IXWebSocket のビルドは初期設定で TLS/Zlib を無効化しているため、`wss://` が必要な検証を行う場合は OpenSSL/MbedTLS を用意した上で `build/native-deps.ps1` に対応する CMake オプションを追加すること。
+- Release 構成で `msbuild COM_Nostr_Native.vcxproj /p:Configuration=Release /p:Platform=x64` を実行する前に `build/native-deps.ps1 -Configuration Release` を走らせておかないと、`packages/native/ixwebsocket/x64/Release/lib/ixwebsocket.lib` が存在せず `LNK1104` で失敗する。Debug だけ生成済みの場合は Release の依存フォルダーが空のままなので、スクリプトを構成別に実行してからビルドを再試行する。
 - PowerShell 7 (`pwsh`) で `pwsh -Command & { ... }` のようにコマンド引数へ直接スクリプトブロックを渡すと `ScriptBlock should only be specified as a value of the Command parameter.` というパースエラーになる。`-Command "<script>"` の形式で 1 つの文字列としてスクリプト全体を渡すか、`$script = '...'; pwsh -Command $script` として実行すれば意図どおりに動作する。
 - WinHTTP API をリンクし忘れると `LNK2019: unresolved external symbol WinHttpWebSocket*` などのリンク エラーが出る。`COM_Nostr_Native.vcxproj` / `NostrNativeTests.vcxproj` の `<AdditionalDependencies>` に `winhttp.lib` が入っているか確認する。
 - `COM_Nostr_Native` の MIDL が `MIDL2025: ... near "IDispatch"` で停止する場合は、IDL 内の各 `coclass` で `[default] interface IDispatch;` のように `interface` キーワード付きで既定インターフェイスを宣言しているか確認し、修正後に `msbuild COM_Nostr_Native.vcxproj /t:Clean;Build /p:Configuration=Debug /p:Platform=x64` を実行する。
@@ -19,6 +20,7 @@
 
 - PowerShell 7 (pwsh) は .NET 9 系ランタイムを事前読み込みするため、`New-Object -ComObject COM_Nostr.NostrClient` で 0x800080A5 (CO_E_CLRNOTAVAILABLE) が発生することがある。その場合は Windows PowerShell 5.1 (`powershell.exe`) など .NET Framework ホストか、Excel/VBA 等のネイティブクライアント経由で参照する。
 - `tlbexp.exe` (.NET Framework 4.x) は net8.0-windows 向けにビルドした `COM_Nostr.dll` を読み込む際に GAC から `System.Runtime, Version=8.0.0.0` を解決できず TX0000 エラーで停止する。公式ドキュメントにもあるとおり、.NET Core/.NET 5+ ではアセンブリから TLB を生成する機能が提供されないため、TLB が必要な場合は MIDL で IDL から生成するか、既存の TLB を用意して `<ComHostTypeLibrary>` で埋め込む運用に切り替える。
+- UnitTest_COM_Nostr の `COMReference` はレジストリに `COM_Nostr` の Type Library が登録されていないと `MSB3284` で失敗する。COM コンポーネントを `regsvr32 COM_Nostr.comhost.dll` で登録し、`COM_Nostr.tlb` も `regtlibv12` などで登録した状態でビルド・テストを実行するか、開発環境に手動で TLB を配置して `ResolveComReference` が参照できるようにする。
 
 - 32bit PowerShell (例: `C:\\Windows\\SysWOW64\\WindowsPowerShell\\v1.0\\powershell.exe`) から `COM_Nostr.comhost.dll` を登録すると WOW6432Node 側にのみ CLSID が書き込まれ、64bit クライアント (Excel 64bit 等) では `REGDB_E_CLASSNOTREG` となる。登録・動作確認はいずれも 64bit ホストで行うこと。
 

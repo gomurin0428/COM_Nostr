@@ -34,6 +34,62 @@ if (-not $cmakeCommand) {
 }
 
 $repoRoot = Convert-Path (Join-Path $PSScriptRoot '..')
+$nlohmannVersion = '3.11.3'
+$nlohmannExpectedSha256 = '9BEA4C8066EF4A1C206B2BE5A36302F8926F7FDC6087AF5D20B417D0CF103EA6'
+$nlohmannPackageRoot = Join-Path $repoRoot 'packages\native\nlohmann_json'
+$nlohmannIncludeRoot = Join-Path $nlohmannPackageRoot 'include'
+$nlohmannHeaderDir = Join-Path $nlohmannIncludeRoot 'nlohmann'
+$nlohmannHeaderPath = Join-Path $nlohmannHeaderDir 'json.hpp'
+$nlohmannDownloadUri = "https://github.com/nlohmann/json/releases/download/v$nlohmannVersion/json.hpp"
+
+function Ensure-NlohmannJsonHeader {
+    if (-not (Test-Path $nlohmannPackageRoot)) {
+        New-Item -ItemType Directory -Path $nlohmannPackageRoot -Force | Out-Null
+    }
+    if (-not (Test-Path $nlohmannIncludeRoot)) {
+        New-Item -ItemType Directory -Path $nlohmannIncludeRoot -Force | Out-Null
+    }
+    if (-not (Test-Path $nlohmannHeaderDir)) {
+        New-Item -ItemType Directory -Path $nlohmannHeaderDir -Force | Out-Null
+    }
+
+    $needsDownload = $true
+    if (Test-Path $nlohmannHeaderPath) {
+        $existingHash = (Get-FileHash -Path $nlohmannHeaderPath -Algorithm SHA256).Hash.ToUpperInvariant()
+        if ($existingHash -eq $nlohmannExpectedSha256) {
+            $needsDownload = $false
+        }
+        else {
+            Remove-Item $nlohmannHeaderPath -Force
+        }
+    }
+
+    if ($needsDownload) {
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        try {
+            Write-Host "[native-deps] Download nlohmann/json $nlohmannVersion"
+            Invoke-WebRequest -Uri $nlohmannDownloadUri -OutFile $tempFile -UseBasicParsing | Out-Null
+            $downloadedHash = (Get-FileHash -Path $tempFile -Algorithm SHA256).Hash.ToUpperInvariant()
+            if ($downloadedHash -ne $nlohmannExpectedSha256) {
+                throw "nlohmann/json $nlohmannVersion のダウンロード結果のハッシュが一致しません。期待: $nlohmannExpectedSha256 実測: $downloadedHash"
+            }
+            Move-Item -Path $tempFile -Destination $nlohmannHeaderPath -Force
+        }
+        catch {
+            if (Test-Path $tempFile) {
+                Remove-Item $tempFile -Force
+            }
+            throw "nlohmann/json $nlohmannVersion の json.hpp ダウンロードに失敗しました: $($_.Exception.Message)"
+        }
+    }
+}
+
+if ($Clean -and (Test-Path $nlohmannHeaderDir)) {
+    Remove-Item $nlohmannHeaderDir -Recurse -Force
+}
+
+Ensure-NlohmannJsonHeader
+
 $secpRoot = Join-Path $repoRoot 'external\libsecp256k1'
 if (-not (Test-Path (Join-Path $secpRoot '.git'))) {
     throw "libsecp256k1 submodule が存在しません。`git submodule update --init --recursive` を実行してください。"

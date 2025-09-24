@@ -13,6 +13,7 @@
    - 再生成したい場合は `-Clean` オプションを付与する。
    - スクリプトは `cmake` が PATH に無い場合でも Visual Studio 2022 同梱の `Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin` を自動検出して利用する。別環境の CMake を使いたい場合は事前に PATH を上書きする。
    - libsecp256k1 は静的ライブラリとしてビルドし、`ECDH`/`EXTRAKEYS`/`SCHNORRSIG` モジュールを有効化している。IXWebSocket は TLS/Zlib を無効化した静的ライブラリを生成する。`wss://` や permessage-deflate を利用する場合は OpenSSL/MbedTLS/Zlib を用意し、CMake オプションを手動で有効化する。
+   - `packages/native/nlohmann_json/include/nlohmann/json.hpp` が未配置または破損している場合は、同スクリプトが nlohmann/json 3.11.3 を SHA-256 検証付きでダウンロードし再配置する。
 3. `COM_Nostr_Native.vcxproj` は C++20 固定かつ Werror (`/WX`) に設定されているため、警告を解消してからコミットする。
 4. JSON 変換にはリポジトリ同梱の `packages/native/nlohmann_json` (nlohmann/json 3.11.3) をプリコンパイルヘッダー経由で利用する。
 - 外部ライブラリとライセンス: `libsecp256k1` (MIT/BSD-2-Clause 相当)、`IXWebSocket` (BSD-3-Clause、`external/IXWebSocket/LICENSE.txt`)、`nlohmann/json` (MIT)。配布物へは各ライセンス表記を同梱する。

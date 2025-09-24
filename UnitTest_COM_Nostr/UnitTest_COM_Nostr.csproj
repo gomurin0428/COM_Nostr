@@ -13,4 +13,16 @@
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
+  <ItemGroup>
+    <COMReference Include="COMNostrNativeLib">
+      <VersionMinor>0</VersionMinor>
+      <VersionMajor>1</VersionMajor>
+      <Guid>73a9e0cc-1c6c-4e6f-bbec-ce22a88b4087</Guid>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>false</Isolated>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+
 </Project>
