@@ -86,3 +86,5 @@
 - 2025-09-25T04:09:35+09:00 直前のビルド実行が途中出力で終了したため、同コマンドをタイムアウト 40 秒で再実行予定。
 - 2025-09-25T04:10:16+09:00 オブジェクトマップ修正後の再ビルドを同コマンド・タイムアウト 40 秒で実行予定。
 - 2025-09-25T04:10:39+09:00 `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` が成功し、スタブ実装追加後もビルド・自己登録が通ることを確認。
+- 2025-09-25T04:18:04+09:00 DTO クラスの CLSID も登録されるようオブジェクトマップを拡張し、同コマンドを再実行予定。
+- 2025-09-25T04:18:31+09:00 `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` が成功し、DTO クラスを含む新オブジェクトマップでもビルド・登録が通ることを確認。
