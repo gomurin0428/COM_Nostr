@@ -77,3 +77,12 @@
 - 2025-09-24T20:21:21+09:00 `desktop-commander__start_process` 経由の PowerShell 起動が 0x8009001d で失敗したため、`shell` コマンドで同一ビルドを再実行予定。
 - 2025-09-24T20:21:33+09:00 `shell` で `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` をタイムアウト20秒で実行開始。
 - 2025-09-24T20:21:56+09:00 `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` が 1.63 秒で成功し、rgs 更新後もビルドが通ることを確認。
+
+## 2025-09-25
+- 2025-09-25T03:46:20+09:00 ドキュメント更新後の影響確認として、`msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` をタイムアウト 20 秒で別プロセス実行する準備を開始。
+- 2025-09-25T03:46:48+09:00 上記コマンドを実行し、警告・エラー 0 でビルド成功 (`CLASS_E_CLASSNOTAVAILABLE` 調査後もネイティブ DLL が正常にリンク・登録されることを確認)。
+- 2025-09-25T03:47:33+09:00 `CLASS_E_CLASSNOTAVAILABLE` 発生要因を調査し、`dllmain.cpp` にオブジェクトマップ未定義・CoClass 未実装である点を特定。README.md / TROUBLESHOOTING.md に現状の制限と対処方針を追記。
+- 2025-09-25T04:08:52+09:00 CoClass スタブ実装反映後の検証として、`msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` をタイムアウト 20 秒で実行予定。
+- 2025-09-25T04:09:35+09:00 直前のビルド実行が途中出力で終了したため、同コマンドをタイムアウト 40 秒で再実行予定。
+- 2025-09-25T04:10:16+09:00 オブジェクトマップ修正後の再ビルドを同コマンド・タイムアウト 40 秒で実行予定。
+- 2025-09-25T04:10:39+09:00 `msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64` が成功し、スタブ実装追加後もビルド・自己登録が通ることを確認。

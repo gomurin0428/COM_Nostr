@@ -93,7 +93,7 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)..\packages\native\ixwebsocket\x64\$(Configuration)\include;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)src\com;$(ProjectDir)..\packages\native\ixwebsocket\x64\$(Configuration)\include;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -131,7 +131,7 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)..\packages\native\ixwebsocket\x64\$(Configuration)\include;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)src\com;$(ProjectDir)..\packages\native\ixwebsocket\x64\$(Configuration)\include;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -168,7 +168,7 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)..\packages\native\ixwebsocket\x64\$(Configuration)\include;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)src\com;$(ProjectDir)..\packages\native\ixwebsocket\x64\$(Configuration)\include;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -204,7 +204,7 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)..\packages\native\ixwebsocket\x64\$(Configuration)\include;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;$(ProjectDir)src\dto;$(ProjectDir)src\serialization;$(ProjectDir)src\runtime;$(ProjectDir)src\com;$(ProjectDir)..\packages\native\ixwebsocket\x64\$(Configuration)\include;$(ProjectDir)..\packages\native\nlohmann_json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -246,6 +246,7 @@
     <ClInclude Include="include\runtime\WinHttpWebSocket.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="src\com\NostrComClasses.h" />
     <ClInclude Include="src\dto\NostrDtoComObjects.h" />
     <ClInclude Include="src\serialization\NostrJsonSerializer.h" />
     <ClInclude Include="targetver.h" />
@@ -280,6 +281,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\com\NostrComClasses.cpp" />
     <ClCompile Include="src\dto\ComValueHelpers.cpp" />
     <ClCompile Include="src\dto\NostrDtoComObjects.cpp" />
     <ClCompile Include="src\serialization\NostrJsonSerializer.cpp" />

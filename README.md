@@ -6,6 +6,7 @@
 - 参照仕様: 「Nostrプロトコルの現行仕様まとめ.docx」に整理された NIP-01 / NIP-15 / NIP-20 / NIP-42 / NIP-65 / NIP-11 の要点。
 - 詳細設計メモは `docs/phase0_design.md` にまとめている。
 - C++/ATL 移植用の `COM_Nostr_Native` プロジェクトでも `COMNostrNative.idl` にて同一インターフェイスを定義し、実装差し替えの準備を進めている。
+- 2025-09-24 時点では `COM_Nostr_Native` の公開 CoClass (`NostrClient` / `NostrRelaySession` / `NostrSubscription` など) は未実装のため、`regsvr32` 成功後でも CLSID `{7d3091fe-ca18-49ba-835c-012991076660}` から COM オブジェクトを生成できず `CLASS_E_CLASSNOTAVAILABLE` になります。CoClass 実装と ATL オブジェクトマップを追加した後に再ビルド・再登録してください。
 
 ## Native ビルド準備 (C++/ATL)
 1. `git submodule update --init --recursive` を実行し、`external/libsecp256k1` と `external/IXWebSocket` を取得する。

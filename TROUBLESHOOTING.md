@@ -1,6 +1,7 @@
 # Troubleshooting
 
 - NostrClient は 1 度しか Initialize できません。2 回目以降は `E_NOSTR_ALREADY_INITIALIZED` が返るため、新しいインスタンスを生成してください。`Dispose()` 後に任意の API を呼び出すと `E_NOSTR_OBJECT_DISPOSED` が返るので、再利用せず破棄してください。
+- COMNostrNativeLib.NostrClient が `CLASS_E_CLASSNOTAVAILABLE` (0x80040111) を返す場合、`COM_Nostr_Native` 側で `BEGIN_OBJECT_MAP` / `OBJECT_ENTRY_AUTO` が未定義か `CNostrClient` などの ATL クラス自体が未実装です。`dllmain.cpp` でオブジェクトマップを定義し、`src/com` 配下に `CNostrClient`/`CNostrRelaySession` などの CoClass 実装を追加したうえで再ビルド・再登録してください。
 - GUI 以外のホスト (PowerShell やサービス) で `SynchronizationContext` が捕捉できない場合、内部 STA スレッド上でコールバックが直列実行されます。コールバック内で長時間ブロックすると他の通知が詰まるため、必要なら `Task.Run` 等でオフロードしてください。
 - WinHTTP ベースの WebSocket 実装は permessage-deflate 等の拡張を受け付けず、圧縮必須のリレーでは `ERROR_WINHTTP_INVALID_SERVER_RESPONSE` を返す。Native 版では `HResults.WebSocketFailure` へ変換し、NOTICE へ「compression unsupported」などの説明を流すことで利用者が別リレーを選べるよう周知する。
 - strfry など Nostr リレーへ接続する際は `Sec-WebSocket-Protocol: nostr` を必ず送信する。ヘッダーが欠落すると WinHTTP が `ERROR_WINHTTP_INVALID_SERVER_RESPONSE` でハンドシェイクを中断するため、`WinHttpWebSocket` の Connect 失敗時はヘッダー設定と docker コンテナの起動状態を確認する。

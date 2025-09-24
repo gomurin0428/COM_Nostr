@@ -46,6 +46,9 @@
     <ClInclude Include="src\serialization\NostrJsonSerializer.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="src\com\NostrComClasses.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="COM_Nostr_Native.cpp">
@@ -67,6 +70,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\serialization\NostrJsonSerializer.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="src\com\NostrComClasses.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
