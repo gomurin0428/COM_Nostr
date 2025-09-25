@@ -116,3 +116,11 @@
 - 2025-09-25T12:27:56+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) が成功。
 - 2025-09-25T12:55:01+09:00 OpenSubscription 実装後の検証として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行予定。
 - 2025-09-25T12:55:28+09:00 上記 msbuild が 5.9 秒で成功し、今回の変更後も Debug|x64 ビルドが通ることを確認。
+- 2025-09-25T13:11:52+09:00 CNostrSubscription プロパティ実装後の確認として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行予定。
+- 2025-09-25T13:12:36+09:00 上記 msbuild は std::max の Windows マクロ衝突により失敗 (C2589/C2059/C2737)。修正後に再実行予定。
+- 2025-09-25T13:12:52+09:00 修正完了のため msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 を再実行予定 (タイムアウト20秒)。
+- 2025-09-25T13:13:20+09:00 再実行した msbuild が 5.0 秒で成功し、CNostrSubscription の更新後も Debug|x64 ビルドが通ることを確認。
+- 2025-09-25T13:25:11+09:00 QueueOverflowStrategy 実装後の確認として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行予定。
+- 2025-09-25T13:25:41+09:00 上記 msbuild が 5.0 秒で成功し、購読キュー制御実装後も Debug|x64 ビルドが通ることを確認。
+- 2025-09-25T13:26:02+09:00 新規 MSTest (Close→CLOSED シナリオ) を含めた `dotnet test UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj -c Debug` をタイムアウト20秒で実行予定。
+- 2025-09-25T13:26:28+09:00 上記 `dotnet test` は MSB4803 (.NET Core 版 MSBuild 非対応) により失敗。COM 参照付きプロジェクトのため従来通りフル .NET Framework MSBuild でのテスト実行が必要。

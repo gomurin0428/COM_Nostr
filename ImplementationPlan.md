@@ -39,9 +39,9 @@
 - [ ] `UpdatePolicy`: RelayDescriptor 差分適用、Preferred 切り替え、KeepAlive 設定を `WinHttpWebSocket` へ連携。
 
 ### INostrSubscription
-- [ ] `get_Id`/`get_Status`/`get_Filters`: 内部状態と SAFEARRAY 変換を実装。
-- [ ] `UpdateFilters`: フィルタ正規化→REQ 再送→`AutoRequeryWindowSeconds` 補正→キュー再初期化を行う。
-- [ ] `Close`: `CLOSE` 送信→受信待機→状態遷移→コールバック通知 (`OnClosed`) を実装。
+- [x] `get_Id`/`get_Status`/`get_Filters`: 内部状態と SAFEARRAY 変換を実装。
+- [x] `UpdateFilters`: フィルタ正規化→REQ 再送→`AutoRequeryWindowSeconds` 補正→キュー再初期化を行う。
+- [x] `Close`: `CLOSE` 送信→受信待機→状態遷移→コールバック通知 (`OnClosed`) を実装。
 - [ ] キュー溢れ (`MaxQueueLength`、`QueueOverflowStrategy`) の制御と `DropOldest`/`Throw` 分岐を実装。
 - [ ] EVENT/EOSE/NOTICE ハンドリングを `ComCallbackDispatcher` にポストし、STA スレッドで直列化する。
 

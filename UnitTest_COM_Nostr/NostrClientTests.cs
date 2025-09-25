@@ -382,6 +382,111 @@ public sealed class NostrClientTests
         }
     }
 
+    [TestMethod]
+    public async Task CloseSubscription_ReceivesClosedNotificationAsync()
+    {
+        Assert.IsNotNull(_relayHost, "Strfry relay host is not initialised.");
+
+        var client = new COMNostrNativeLib.NostrClient();
+        COMNostrNativeLib.ClientOptions? options = null;
+        COMNostrNativeLib.NostrSigner? signer = null;
+        COMNostrNativeLib.RelayDescriptor? relayDescriptor = null;
+        COMNostrNativeLib.SubscriptionOptions? subscriptionOptions = null;
+        COMNostrNativeLib.NostrFilter[]? filters = null;
+        COMNostrNativeLib.INostrSubscription? subscription = null;
+        COMNostrNativeLib.INostrRelaySession? session = null;
+
+        try
+        {
+            options = CreateDefaultClientOptions();
+            client.Initialize(options);
+
+            signer = new COMNostrNativeLib.NostrSigner();
+            client.SetSigner(signer);
+
+            relayDescriptor = new COMNostrNativeLib.RelayDescriptor
+            {
+                Url = _relayHost!.RelayWebSocketUrl,
+                ReadEnabled = true,
+                WriteEnabled = true
+            };
+
+            var authCallback = new NullAuthCallback();
+            session = client.ConnectRelay(relayDescriptor, authCallback);
+            await WaitForSessionStateAsync(session, COMNostrNativeLib.RelaySessionState.RelaySessionState_Connected, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+
+            subscriptionOptions = new COMNostrNativeLib.SubscriptionOptions
+            {
+                KeepAlive = true
+            };
+
+            var publicKey = signer.GetPublicKey();
+            filters = new[]
+            {
+                new COMNostrNativeLib.NostrFilter
+                {
+                    Authors = new[] { publicKey },
+                    Kinds = new[] { 1 },
+                    Since = DateTimeOffset.UtcNow.AddMinutes(-1).ToUnixTimeSeconds()
+                }
+            };
+
+            var callback = new CloseAwareEventCallback();
+            subscription = client.OpenSubscription(_relayHost.RelayWebSocketUrl, filters, callback, subscriptionOptions);
+
+            var subscriptionId = await callback.WaitForEndOfStoredEventsAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            Assert.AreEqual(subscription.Id, subscriptionId, "EOSE 時に取得した購読IDが一致しません。");
+
+            subscription.Close();
+
+            var closed = await callback.WaitForClosedAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            Assert.AreEqual(subscriptionId, closed.SubscriptionId, "CLOSED 通知の購読IDが一致しません。");
+            Assert.AreEqual(COMNostrNativeLib.SubscriptionStatus.SubscriptionStatus_Closed, subscription.Status, "Close 後の購読ステータスが Closed ではありません。");
+            Assert.IsFalse(string.IsNullOrWhiteSpace(closed.Reason), "CLOSED 理由が空です。");
+        }
+        finally
+        {
+            if (subscription is not null)
+            {
+                try
+                {
+                    subscription.Close();
+                }
+                catch
+                {
+                }
+            }
+
+            ReleaseComObject(subscription);
+
+            if (filters is not null)
+            {
+                foreach (var filter in filters)
+                {
+                    ReleaseComObject(filter);
+                }
+            }
+
+            if (session is not null)
+            {
+                try
+                {
+                    client.DisconnectRelay(_relayHost!.RelayWebSocketUrl);
+                }
+                catch
+                {
+                }
+            }
+
+            ReleaseComObject(session);
+            ReleaseComObject(subscriptionOptions);
+            ReleaseComObject(relayDescriptor);
+            ReleaseComObject(signer);
+            ReleaseComObject(options);
+            ReleaseComObject(client);
+        }
+    }
+
     private static async Task WaitForSessionStateAsync(COMNostrNativeLib.INostrRelaySession session, COMNostrNativeLib.RelaySessionState expected, TimeSpan timeout)
     {
         
@@ -472,6 +577,47 @@ public sealed class NostrClientTests
         public Task<COMNostrNativeLib.NostrEvent> WaitForEventAsync(TimeSpan timeout) => WaitWithTimeoutAsync(_eventSource.Task, timeout, "EVENT");
 
         public Task<string> WaitForEndOfStoredEventsAsync(TimeSpan timeout) => WaitWithTimeoutAsync(_eoseSource.Task, timeout, "EOSE");
+
+        private static async Task<T> WaitWithTimeoutAsync<T>(Task<T> task, TimeSpan timeout, string name)
+        {
+            var completed = await Task.WhenAny(task, Task.Delay(timeout)).ConfigureAwait(false);
+            if (completed != task)
+            {
+                throw new TimeoutException($"{name} が {timeout} 以内に到着しませんでした。");
+            }
+
+            return await task.ConfigureAwait(false);
+        }
+    }
+
+    private sealed class CloseAwareEventCallback : COMNostrNativeLib.INostrEventCallback
+    {
+        private readonly TaskCompletionSource<string> _eoseSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<(string SubscriptionId, string Reason)> _closedSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public void OnClosed(string relayUrl, string subscriptionId, string reason)
+        {
+            _closedSource.TrySetResult((subscriptionId, reason));
+        }
+
+        public void OnEndOfStoredEvents(string relayUrl, string subscriptionId)
+        {
+            _eoseSource.TrySetResult(subscriptionId);
+        }
+
+        public void OnEvent(string relayUrl, object @event)
+        {
+            // 応答不要
+        }
+
+        public void OnNotice(string relayUrl, string message)
+        {
+            // NOTICE は本テストでは検証対象外だが、必要に応じてログへ残す余地を残すため保持しない。
+        }
+
+        public Task<string> WaitForEndOfStoredEventsAsync(TimeSpan timeout) => WaitWithTimeoutAsync(_eoseSource.Task, timeout, "EOSE");
+
+        public Task<(string SubscriptionId, string Reason)> WaitForClosedAsync(TimeSpan timeout) => WaitWithTimeoutAsync(_closedSource.Task, timeout, "CLOSED");
 
         private static async Task<T> WaitWithTimeoutAsync<T>(Task<T> task, TimeSpan timeout, string name)
         {

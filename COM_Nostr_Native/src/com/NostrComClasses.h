@@ -11,6 +11,7 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <deque>
 
 #include "resource.h"
 #include "COMNostrNative_i.h"
@@ -42,6 +43,11 @@ struct RelaySessionData
         std::vector<NostrJsonSerializer::FilterData> filters;
         SubscriptionOptionsData options;
         std::vector<ATL::CComPtr<IDispatch>> originalFilters;
+        std::optional<double> lastEventTimestamp;
+        bool closeRequested = false;
+        std::deque<NostrJsonSerializer::EventData> eventQueue;
+        bool dispatchInProgress = false;
+        bool overflowClosed = false;
     };
 
     RelaySessionData() = default;
@@ -195,6 +201,9 @@ public:
     STDMETHOD(Close)() override;
 
 private:
+    HRESULT ResolveStateAndEntry(std::shared_ptr<RelaySessionData>& state,
+                                 std::shared_ptr<RelaySessionData::SubscriptionEntry>& entry) const;
+
     std::weak_ptr<RelaySessionData> state_;
     std::weak_ptr<RelaySessionData::SubscriptionEntry> entry_;
 };

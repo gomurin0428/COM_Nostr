@@ -35,6 +35,7 @@ namespace
 
     constexpr double kMillisecondsPerSecond = 1000.0;
     constexpr double kMaxTimeoutSeconds = static_cast<double>((std::numeric_limits<long long>::max)()) / kMillisecondsPerSecond;
+    constexpr wchar_t kQueueOverflowReason[] = L"Subscription queue overflow.";
 
     struct RelayDescriptorData
     {
@@ -352,6 +353,221 @@ namespace
         return S_OK;
     }
 
+    HRESULT CreateFilterSafeArray(const std::vector<ATL::CComPtr<IDispatch>>& source, SAFEARRAY** result)
+    {
+        if (!result)
+        {
+            return E_POINTER;
+        }
+
+        *result = nullptr;
+
+        SAFEARRAY* array = SafeArrayCreateVector(VT_DISPATCH, 0, static_cast<ULONG>(source.size()));
+        if (!array && !source.empty())
+        {
+            return E_OUTOFMEMORY;
+        }
+
+        HRESULT hr = S_OK;
+        for (LONG index = 0; index < static_cast<LONG>(source.size()); ++index)
+        {
+            IDispatch* pointer = source[static_cast<size_t>(index)];
+            if (!pointer)
+            {
+                hr = hresults::PointerRequired();
+                break;
+            }
+
+            pointer->AddRef();
+            hr = SafeArrayPutElement(array, &index, pointer);
+            pointer->Release();
+            if (FAILED(hr))
+            {
+                break;
+            }
+        }
+
+        if (FAILED(hr))
+        {
+            SafeArrayDestroy(array);
+            return hr;
+        }
+
+        if (!array)
+        {
+            array = SafeArrayCreateVector(VT_DISPATCH, 0, 0);
+            if (!array)
+            {
+                return E_OUTOFMEMORY;
+            }
+        }
+
+        *result = array;
+        return S_OK;
+    }
+
+    void ScheduleSubscriptionDispatch(const std::shared_ptr<RelaySessionData>& state,
+                                       const std::shared_ptr<RelaySessionData::SubscriptionEntry>& entry)
+    {
+        if (!state || !entry)
+        {
+            return;
+        }
+
+        ComCallbackDispatcher* dispatcher = state->dispatcher;
+        if (!dispatcher)
+        {
+            return;
+        }
+
+        INostrEventCallback* callback = entry->callback;
+        if (!callback)
+        {
+            return;
+        }
+
+        callback->AddRef();
+        const std::weak_ptr<RelaySessionData> weakState(state);
+        const std::weak_ptr<RelaySessionData::SubscriptionEntry> weakEntry(entry);
+        const std::shared_ptr<NostrJsonSerializer> serializer = state->serializer;
+
+        const HRESULT hr = dispatcher->Post([weakState, weakEntry, serializer, callback]() mutable
+        {
+            auto stateLocked = weakState.lock();
+            auto entryLocked = weakEntry.lock();
+            if (!stateLocked || !entryLocked)
+            {
+                callback->Release();
+                return;
+            }
+
+            for (;;)
+            {
+                NostrJsonSerializer::EventData eventData;
+                bool hasEvent = false;
+
+                {
+                    std::lock_guard<std::mutex> guard(stateLocked->subscriptionMutex);
+                    if (!entryLocked->eventQueue.empty() && !entryLocked->overflowClosed)
+                    {
+                        eventData = entryLocked->eventQueue.front();
+                        entryLocked->eventQueue.pop_front();
+                        hasEvent = true;
+                    }
+                    else
+                    {
+                        entryLocked->dispatchInProgress = false;
+                    }
+                }
+
+                if (!hasEvent)
+                {
+                    callback->Release();
+                    return;
+                }
+
+                if (!serializer)
+                {
+                    continue;
+                }
+
+                ATL::CComPtr<INostrEvent> eventDispatch;
+                if (FAILED(serializer->PopulateEventDispatch(eventData, &eventDispatch)) || !eventDispatch)
+                {
+                    continue;
+                }
+
+                CComVariant args[2];
+                args[0].vt = VT_DISPATCH;
+                args[0].pdispVal = eventDispatch.Detach();
+                args[1] = CComVariant(stateLocked->url.c_str());
+
+                DISPPARAMS params{};
+                params.cArgs = 2;
+                params.rgvarg = args;
+
+                callback->Invoke(1, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+
+                if (args[0].pdispVal)
+                {
+                    args[0].pdispVal->Release();
+                    args[0].pdispVal = nullptr;
+                }
+
+                args[0].vt = VT_EMPTY;
+            }
+        });
+
+        if (FAILED(hr))
+        {
+            callback->Release();
+            std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+            entry->dispatchInProgress = false;
+        }
+    }
+
+    bool EnqueueEventForSubscription(const std::shared_ptr<RelaySessionData>& state,
+                                     const std::shared_ptr<RelaySessionData::SubscriptionEntry>& entry,
+                                     const NostrJsonSerializer::EventMessage& message,
+                                     std::wstring& overflowReason)
+    {
+        if (!state || !entry)
+        {
+            return false;
+        }
+
+        bool scheduleDispatch = false;
+
+        {
+            std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+            if (entry->overflowClosed)
+            {
+                return false;
+            }
+
+            entry->lastEventTimestamp = message.event.createdAt;
+
+            if (entry->options.maxQueueLength && entry->options.maxQueueLength.value() > 0)
+            {
+                const size_t limit = entry->options.maxQueueLength.value();
+                if (entry->eventQueue.size() >= limit)
+                {
+                    if (entry->options.overflowStrategy == QueueOverflowStrategy_DropOldest)
+                    {
+                        if (!entry->eventQueue.empty())
+                        {
+                            entry->eventQueue.pop_front();
+                        }
+                    }
+                    else
+                    {
+                        entry->overflowClosed = true;
+                        entry->status = SubscriptionStatus_Closed;
+                        entry->eventQueue.clear();
+                        entry->dispatchInProgress = false;
+                        entry->closeRequested = false;
+                        overflowReason = kQueueOverflowReason;
+                        return false;
+                    }
+                }
+            }
+
+            entry->eventQueue.push_back(message.event);
+            if (!entry->dispatchInProgress)
+            {
+                entry->dispatchInProgress = true;
+                scheduleDispatch = true;
+            }
+        }
+
+        if (scheduleDispatch)
+        {
+            ScheduleSubscriptionDispatch(state, entry);
+        }
+
+        return true;
+    }
+
     HRESULT ReadRelayDescriptor(IDispatch* dispatch, RelayDescriptorData& data)
     {
         if (!dispatch)
@@ -612,6 +828,14 @@ namespace
         }
 
         UpdateSubscriptionStatus(state, subscriptionId, SubscriptionStatus_Closed);
+        {
+            std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+            const auto it = state->subscriptions.find(subscriptionId);
+            if (it != state->subscriptions.end() && it->second)
+            {
+                it->second->closeRequested = false;
+            }
+        }
 
         for (const auto& target : targets)
         {
@@ -657,23 +881,16 @@ namespace
             return;
         }
 
+        UNREFERENCED_PARAMETER(serializer);
+
         const auto targets = CollectSubscriptions(state, message.subscriptionId);
         if (targets.empty())
         {
             return;
         }
 
-        ATL::CComPtr<INostrEvent> eventDispatch;
-        if (FAILED(serializer->PopulateEventDispatch(message.event, &eventDispatch)))
-        {
-            return;
-        }
-
-        INostrEvent* sharedEvent = eventDispatch;
-        if (!sharedEvent)
-        {
-            return;
-        }
+        std::vector<std::shared_ptr<RelaySessionData::SubscriptionEntry>> overflowed;
+        overflowed.reserve(targets.size());
 
         for (const auto& target : targets)
         {
@@ -682,34 +899,21 @@ namespace
                 continue;
             }
 
-            INostrEventCallback* callback = target->callback;
-            if (!callback)
+            std::wstring overflowReason;
+            if (!EnqueueEventForSubscription(state, target, message, overflowReason) && !overflowReason.empty())
+            {
+                overflowed.push_back(target);
+            }
+        }
+
+        for (const auto& overflowedEntry : overflowed)
+        {
+            if (!overflowedEntry)
             {
                 continue;
             }
 
-            callback->AddRef();
-            sharedEvent->AddRef();
-            const std::wstring relayUrl = state->url;
-            dispatcher->Post([callback, relayUrl, sharedEvent]() mutable
-            {
-                CComVariant args[2];
-                args[0].vt = VT_DISPATCH;
-                args[0].pdispVal = sharedEvent;
-                args[1] = CComVariant(relayUrl.c_str());
-
-                DISPPARAMS params{};
-                params.cArgs = 2;
-                params.rgvarg = args;
-
-                callback->Invoke(1, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
-
-                args[0].pdispVal = nullptr;
-                args[0].vt = VT_EMPTY;
-
-                sharedEvent->Release();
-                callback->Release();
-            });
+            DispatchClosed(state, dispatcher, overflowedEntry->id, kQueueOverflowReason);
         }
     }
 
@@ -1884,12 +2088,9 @@ void CNostrSubscription::FinalRelease() noexcept
                 entry->owner = nullptr;
             }
         }
-        else
+        else if (entry->owner == this)
         {
-            if (entry->owner == this)
-            {
-                entry->owner = nullptr;
-            }
+            entry->owner = nullptr;
         }
     }
 
@@ -1916,32 +2117,262 @@ HRESULT CNostrSubscription::Initialize(std::shared_ptr<RelaySessionData> state,
     return S_OK;
 }
 
+HRESULT CNostrSubscription::ResolveStateAndEntry(std::shared_ptr<RelaySessionData>& state,
+                                                 std::shared_ptr<RelaySessionData::SubscriptionEntry>& entry) const
+{
+    state = state_.lock();
+    entry = entry_.lock();
+
+    if (!entry)
+    {
+        return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+    }
+
+    if (!state)
+    {
+        return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+    }
+
+    {
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        const auto it = state->subscriptions.find(entry->id);
+        if (it == state->subscriptions.end() || it->second.get() != entry.get())
+        {
+            return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+        }
+    }
+
+    return S_OK;
+}
+
 STDMETHODIMP CNostrSubscription::get_Id(BSTR* value)
 {
-    UNREFERENCED_PARAMETER(value);
-    return E_NOTIMPL;
+    if (!value)
+    {
+        return hresults::PointerRequired();
+    }
+
+    *value = nullptr;
+
+    std::shared_ptr<RelaySessionData> state;
+    std::shared_ptr<RelaySessionData::SubscriptionEntry> entry;
+    HRESULT hr = ResolveStateAndEntry(state, entry);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    return CComBSTR(entry->id.c_str()).CopyTo(value);
 }
 
 STDMETHODIMP CNostrSubscription::get_Status(SubscriptionStatus* value)
 {
-    UNREFERENCED_PARAMETER(value);
-    return E_NOTIMPL;
+    if (!value)
+    {
+        return hresults::PointerRequired();
+    }
+
+    std::shared_ptr<RelaySessionData> state;
+    std::shared_ptr<RelaySessionData::SubscriptionEntry> entry;
+    HRESULT hr = ResolveStateAndEntry(state, entry);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    {
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        *value = entry->status;
+    }
+
+    return S_OK;
 }
+
 STDMETHODIMP CNostrSubscription::get_Filters(SAFEARRAY** value)
 {
-    UNREFERENCED_PARAMETER(value);
-    return E_NOTIMPL;
+    if (!value)
+    {
+        return hresults::PointerRequired();
+    }
+
+    *value = nullptr;
+
+    std::shared_ptr<RelaySessionData> state;
+    std::shared_ptr<RelaySessionData::SubscriptionEntry> entry;
+    HRESULT hr = ResolveStateAndEntry(state, entry);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    std::vector<ATL::CComPtr<IDispatch>> snapshot;
+    {
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        snapshot = entry->originalFilters;
+    }
+
+    SAFEARRAY* array = nullptr;
+    hr = CreateFilterSafeArray(snapshot, &array);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    *value = array;
+    return S_OK;
 }
 
 STDMETHODIMP CNostrSubscription::UpdateFilters(SAFEARRAY* filters)
 {
-    UNREFERENCED_PARAMETER(filters);
-    return E_NOTIMPL;
+    if (!filters)
+    {
+        return hresults::InvalidArgument();
+    }
+
+    std::shared_ptr<RelaySessionData> state;
+    std::shared_ptr<RelaySessionData::SubscriptionEntry> entry;
+    HRESULT hr = ResolveStateAndEntry(state, entry);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    if (!state->serializer || !state->webSocket)
+    {
+        return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+    }
+
+    std::vector<NostrJsonSerializer::FilterData> parsedFilters;
+    hr = state->serializer->ReadFiltersFromSafeArray(filters, parsedFilters);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    if (parsedFilters.empty())
+    {
+        return hresults::InvalidArgument();
+    }
+
+    std::vector<ATL::CComPtr<IDispatch>> originalFilters;
+    hr = CopyFilterDispatchArray(filters, originalFilters);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    double windowSeconds = 0.0;
+    bool hasWindow = false;
+    double lastEventTimestamp = 0.0;
+    bool hasLastEvent = false;
+
+    {
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        if (entry->options.autoRequeryWindowSeconds && entry->options.autoRequeryWindowSeconds.value() > 0.0)
+        {
+            hasWindow = true;
+            windowSeconds = entry->options.autoRequeryWindowSeconds.value();
+        }
+        if (entry->lastEventTimestamp)
+        {
+            hasLastEvent = true;
+            lastEventTimestamp = entry->lastEventTimestamp.value();
+        }
+    }
+
+    std::vector<NostrJsonSerializer::FilterData> adjustedFilters = parsedFilters;
+    if (hasWindow && hasLastEvent)
+    {
+        double sinceBase = lastEventTimestamp - windowSeconds;
+        if (sinceBase < 0.0)
+        {
+            sinceBase = 0.0;
+        }
+
+        for (auto& filter : adjustedFilters)
+        {
+            if (!filter.since || filter.since.value() < sinceBase)
+            {
+                filter.since = sinceBase;
+            }
+        }
+    }
+
+    NostrJsonSerializer::RequestMessage request;
+    request.subscriptionId = entry->id;
+    request.filters = std::move(adjustedFilters);
+
+    const auto payload = state->serializer->SerializeRequest(request);
+    hr = state->webSocket->SendText(payload, true);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    {
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        entry->filters = std::move(request.filters);
+        entry->originalFilters = std::move(originalFilters);
+        entry->status = SubscriptionStatus_Pending;
+    }
+
+    return S_OK;
 }
 
 STDMETHODIMP CNostrSubscription::Close()
 {
-    return E_NOTIMPL;
+    std::shared_ptr<RelaySessionData> state;
+    std::shared_ptr<RelaySessionData::SubscriptionEntry> entry;
+    HRESULT hr = ResolveStateAndEntry(state, entry);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    if (!state->serializer || !state->webSocket)
+    {
+        return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+    }
+
+    bool alreadyClosed = false;
+    bool alreadyRequested = false;
+    SubscriptionStatus previousStatus = SubscriptionStatus_Pending;
+
+    {
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        previousStatus = entry->status;
+        if (entry->status == SubscriptionStatus_Closed)
+        {
+            alreadyClosed = true;
+        }
+        else if (entry->closeRequested)
+        {
+            alreadyRequested = true;
+        }
+        else
+        {
+            entry->closeRequested = true;
+            entry->status = SubscriptionStatus_Draining;
+        }
+    }
+
+    if (alreadyClosed || alreadyRequested)
+    {
+        return S_OK;
+    }
+
+    const std::wstring subscriptionId = entry->id;
+    const auto payload = state->serializer->SerializeClose(subscriptionId);
+    hr = state->webSocket->SendText(payload, true);
+    if (FAILED(hr))
+    {
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        entry->closeRequested = false;
+        entry->status = previousStatus;
+        return hr;
+    }
+
+    return S_OK;
 }
 HRESULT CNostrSigner::FinalConstruct() noexcept
 {
