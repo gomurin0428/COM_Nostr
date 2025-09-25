@@ -15,12 +15,17 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cwctype>
 #include <limits>
 #include <memory>
 #include <optional>
 #include <utility>
+
+#include <bcrypt.h>
+
+#pragma comment(lib, "bcrypt.lib")
 
 using namespace com::nostr::native;
 
@@ -152,6 +157,198 @@ namespace
         }
 
         normalized += path;
+        return S_OK;
+    }
+
+    HRESULT GenerateSubscriptionId(std::wstring& id)
+    {
+        id.clear();
+        std::array<uint8_t, 32> buffer{};
+        const NTSTATUS status = BCryptGenRandom(nullptr,
+                                                buffer.data(),
+                                                static_cast<ULONG>(buffer.size()),
+                                                BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+        if (!BCRYPT_SUCCESS(status))
+        {
+            return HRESULT_FROM_NT(status);
+        }
+
+        static constexpr wchar_t kHexDigits[] = L"0123456789abcdef";
+        std::wstring generated;
+        generated.reserve(buffer.size() * 2);
+        for (uint8_t value : buffer)
+        {
+            generated.push_back(kHexDigits[(value >> 4) & 0x0F]);
+            generated.push_back(kHexDigits[value & 0x0F]);
+        }
+
+        id = std::move(generated);
+        return S_OK;
+    }
+
+    HRESULT NormalizeSubscriptionOptions(IDispatch* dispatch,
+                                         RelaySessionData::SubscriptionOptionsData& options)
+    {
+        options = RelaySessionData::SubscriptionOptionsData{};
+        if (!dispatch)
+        {
+            return S_OK;
+        }
+
+        ATL::CComDispatchDriver driver(dispatch);
+        if (!driver)
+        {
+            return DISP_E_TYPEMISMATCH;
+        }
+
+        CComVariant value;
+        HRESULT hr = driver.GetProperty(1, &value);
+        if (SUCCEEDED(hr) && VariantHasValue(value))
+        {
+            hr = value.ChangeType(VT_BOOL);
+            if (FAILED(hr))
+            {
+                return DISP_E_TYPEMISMATCH;
+            }
+
+            options.keepAlive = value.boolVal == VARIANT_TRUE;
+        }
+        else if (FAILED(hr) && hr != DISP_E_MEMBERNOTFOUND)
+        {
+            return hr;
+        }
+
+        value.Clear();
+        hr = driver.GetProperty(2, &value);
+        if (SUCCEEDED(hr) && VariantHasValue(value))
+        {
+            const auto seconds = VariantToDouble(value);
+            if (!seconds || *seconds < 0.0)
+            {
+                return hresults::InvalidArgument();
+            }
+
+            if (*seconds > 0.0)
+            {
+                options.autoRequeryWindowSeconds = *seconds;
+            }
+        }
+        else if (FAILED(hr) && hr != DISP_E_MEMBERNOTFOUND)
+        {
+            return hr;
+        }
+
+        value.Clear();
+        hr = driver.GetProperty(3, &value);
+        if (SUCCEEDED(hr) && VariantHasValue(value))
+        {
+            const auto length = VariantToLong(value);
+            if (!length || *length <= 0)
+            {
+                return hresults::InvalidArgument();
+            }
+
+            options.maxQueueLength = static_cast<uint32_t>(*length);
+        }
+        else if (FAILED(hr) && hr != DISP_E_MEMBERNOTFOUND)
+        {
+            return hr;
+        }
+
+        value.Clear();
+        hr = driver.GetProperty(4, &value);
+        if (SUCCEEDED(hr) && VariantHasValue(value))
+        {
+            const auto strategy = VariantToLong(value);
+            if (!strategy)
+            {
+                return hresults::InvalidArgument();
+            }
+
+            if (*strategy != QueueOverflowStrategy_DropOldest &&
+                *strategy != QueueOverflowStrategy_Throw)
+            {
+                return hresults::InvalidArgument();
+            }
+
+            options.overflowStrategy = static_cast<QueueOverflowStrategy>(*strategy);
+        }
+        else if (FAILED(hr) && hr != DISP_E_MEMBERNOTFOUND)
+        {
+            return hr;
+        }
+
+        return S_OK;
+    }
+
+    HRESULT CopyFilterDispatchArray(SAFEARRAY* array, std::vector<ATL::CComPtr<IDispatch>>& target)
+    {
+        target.clear();
+        if (!array)
+        {
+            return hresults::InvalidArgument();
+        }
+
+        LONG lower = 0;
+        LONG upper = -1;
+        HRESULT hr = SafeArrayGetLBound(array, 1, &lower);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        hr = SafeArrayGetUBound(array, 1, &upper);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        if (upper < lower)
+        {
+            return S_OK;
+        }
+
+        VARTYPE vt = VT_EMPTY;
+        hr = SafeArrayGetVartype(array, &vt);
+        const bool directDispatch = SUCCEEDED(hr) && vt == VT_DISPATCH;
+
+        const LONG count = upper - lower + 1;
+        target.reserve(static_cast<size_t>(count));
+
+        for (LONG index = lower; index <= upper; ++index)
+        {
+            if (directDispatch)
+            {
+                IDispatch* pointer = nullptr;
+                hr = SafeArrayGetElement(array, &index, &pointer);
+                if (FAILED(hr))
+                {
+                    return hr;
+                }
+
+                target.emplace_back();
+                target.back().Attach(pointer);
+                continue;
+            }
+
+            CComVariant element;
+            hr = SafeArrayGetElement(array, &index, &element);
+            if (FAILED(hr))
+            {
+                return hr;
+            }
+
+            if (element.vt != VT_DISPATCH || !element.pdispVal)
+            {
+                return DISP_E_TYPEMISMATCH;
+            }
+
+            target.emplace_back();
+            target.back().Attach(element.pdispVal);
+            element.pdispVal = nullptr;
+            element.vt = VT_EMPTY;
+        }
+
         return S_OK;
     }
 
@@ -1208,12 +1405,169 @@ STDMETHODIMP CNostrClient::HasRelay(BSTR relayUrl, VARIANT_BOOL* hasRelay)
 
 STDMETHODIMP CNostrClient::OpenSubscription(BSTR relayUrl, SAFEARRAY* filters, INostrEventCallback* callback, IDispatch* options, INostrSubscription** subscription)
 {
-    UNREFERENCED_PARAMETER(relayUrl);
-    UNREFERENCED_PARAMETER(filters);
-    UNREFERENCED_PARAMETER(callback);
-    UNREFERENCED_PARAMETER(options);
-    UNREFERENCED_PARAMETER(subscription);
-    return E_NOTIMPL;
+    if (!subscription)
+    {
+        return hresults::PointerRequired();
+    }
+
+    *subscription = nullptr;
+
+    if (!relayUrl || !callback)
+    {
+        return hresults::PointerRequired();
+    }
+
+    if (!filters)
+    {
+        return hresults::InvalidArgument();
+    }
+
+    std::wstring normalizedUrl;
+    HRESULT hr = NormalizeRelayUrl(BstrToWString(relayUrl), normalizedUrl);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    std::shared_ptr<RelaySessionData> state;
+    std::shared_ptr<NostrJsonSerializer> serializer;
+    {
+        ATL::CComCritSecLock<ATL::CComAutoCriticalSection> guard(stateLock_);
+        if (disposed_)
+        {
+            return hresults::E_NOSTR_OBJECT_DISPOSED;
+        }
+
+        if (!initialized_ || !dispatcher_ || !serializer_)
+        {
+            return hresults::E_NOSTR_NOT_INITIALIZED;
+        }
+
+        const auto it = relaySessions_.find(normalizedUrl);
+        if (it == relaySessions_.end())
+        {
+            return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+        }
+
+        state = it->second;
+        serializer = serializer_;
+    }
+
+    if (!state || !state->webSocket)
+    {
+        return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+    }
+
+    if (!state->readEnabled)
+    {
+        return hresults::InvalidArgument();
+    }
+
+    if (!state->dispatcher || !serializer)
+    {
+        return E_UNEXPECTED;
+    }
+
+    std::vector<NostrJsonSerializer::FilterData> parsedFilters;
+    hr = serializer->ReadFiltersFromSafeArray(filters, parsedFilters);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    if (parsedFilters.empty())
+    {
+        return hresults::InvalidArgument();
+    }
+
+    std::vector<ATL::CComPtr<IDispatch>> originalFilters;
+    hr = CopyFilterDispatchArray(filters, originalFilters);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    RelaySessionData::SubscriptionOptionsData optionData;
+    hr = NormalizeSubscriptionOptions(options, optionData);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    auto entry = std::make_shared<RelaySessionData::SubscriptionEntry>();
+    if (!entry)
+    {
+        return E_OUTOFMEMORY;
+    }
+
+    entry->callback = callback;
+    entry->filters = std::move(parsedFilters);
+    entry->options = optionData;
+    entry->originalFilters = std::move(originalFilters);
+    entry->status = SubscriptionStatus_Pending;
+
+    ATL::CComObject<CNostrSubscription>* subscriptionObject = nullptr;
+    hr = ATL::CComObject<CNostrSubscription>::CreateInstance(&subscriptionObject);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    subscriptionObject->AddRef();
+
+    bool inserted = false;
+    constexpr int kMaxIdAttempts = 5;
+    for (int attempt = 0; attempt < kMaxIdAttempts && !inserted; ++attempt)
+    {
+        hr = GenerateSubscriptionId(entry->id);
+        if (FAILED(hr))
+        {
+            subscriptionObject->Release();
+            return hr;
+        }
+
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        auto [_, success] = state->subscriptions.emplace(entry->id, entry);
+        inserted = success;
+    }
+
+    if (!inserted)
+    {
+        subscriptionObject->Release();
+        return E_FAIL;
+    }
+
+    hr = subscriptionObject->Initialize(state, entry);
+    if (FAILED(hr))
+    {
+        {
+            std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+            state->subscriptions.erase(entry->id);
+        }
+
+        subscriptionObject->Release();
+        return hr;
+    }
+
+    NostrJsonSerializer::RequestMessage request;
+    request.subscriptionId = entry->id;
+    request.filters = entry->filters;
+    const auto payload = serializer->SerializeRequest(request);
+
+    hr = state->webSocket->SendText(payload, true);
+    if (FAILED(hr))
+    {
+        {
+            std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+            state->subscriptions.erase(entry->id);
+        }
+
+        subscriptionObject->Release();
+        return hr;
+    }
+
+    *subscription = subscriptionObject;
+    return S_OK;
 }
 STDMETHODIMP CNostrClient::PublishEvent(BSTR relayUrl, IDispatch* eventPayload)
 {
@@ -1517,6 +1871,49 @@ HRESULT CNostrSubscription::FinalConstruct() noexcept
 
 void CNostrSubscription::FinalRelease() noexcept
 {
+    auto state = state_.lock();
+    auto entry = entry_.lock();
+
+    if (entry)
+    {
+        if (state)
+        {
+            std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+            if (entry->owner == this)
+            {
+                entry->owner = nullptr;
+            }
+        }
+        else
+        {
+            if (entry->owner == this)
+            {
+                entry->owner = nullptr;
+            }
+        }
+    }
+
+    state_.reset();
+    entry_.reset();
+}
+
+HRESULT CNostrSubscription::Initialize(std::shared_ptr<RelaySessionData> state,
+                                       std::shared_ptr<RelaySessionData::SubscriptionEntry> entry)
+{
+    if (!state || !entry)
+    {
+        return hresults::PointerRequired();
+    }
+
+    state_ = state;
+    entry_ = entry;
+
+    {
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        entry->owner = this;
+    }
+
+    return S_OK;
 }
 
 STDMETHODIMP CNostrSubscription::get_Id(BSTR* value)

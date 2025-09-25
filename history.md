@@ -114,3 +114,5 @@
 - 2025-09-25T12:25:20+09:00 再ビルドを実行開始 (msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64)。
 - 2025-09-25T12:27:25+09:00 再ビルド (msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64) を開始。
 - 2025-09-25T12:27:56+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) が成功。
+- 2025-09-25T12:55:01+09:00 OpenSubscription 実装後の検証として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行予定。
+- 2025-09-25T12:55:28+09:00 上記 msbuild が 5.9 秒で成功し、今回の変更後も Debug|x64 ビルドが通ることを確認。

@@ -26,7 +26,7 @@
 - [x] `SetSigner`: `INostrSigner` COM 参照の取得・保持・解放と `E_POINTER`/`E_NOSTR_OBJECT_DISPOSED` ハンドリング。
 - [x] `ConnectRelay`: RelayDescriptor 検証→セッション生成→NIP-11 取得→WebSocket 接続→セッション辞書登録→`INostrAuthCallback` 通知の流れを実装。
 - [x] `DisconnectRelay` / `HasRelay` / `ListRelays`: セッション辞書を同期化し、URL 正規化 (`RelayUriUtilities`) を通じて判定。
-- [ ] `OpenSubscription`: フィルタ検証、購読生成、コールバック登録、`SubscriptionOptions` 適用を行い、購読 ID を返す。
+- [x] `OpenSubscription`: フィルタ検証、購読生成、コールバック登録、`SubscriptionOptions` 適用を行い、購読 ID を返す。
 - [ ] `PublishEvent` / `RespondAuth`: 署名補完、JSON 生成、送信、`LastOkResult` 更新、タイムアウト (`HRESULT_FROM_WIN32(ERROR_TIMEOUT)`) 処理を実装。
 - [ ] `RefreshRelayInfo`: NIP-11 再取得と `RelayDescriptor.Metadata` 更新をセッションへ委譲。
 - [ ] Dispose/FinalRelease: 受信スレッド・セッション・購読を順次停止し、コールバックスレッドを解放。

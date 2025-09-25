@@ -17,20 +17,31 @@
 #include "runtime/ClientRuntimeOptions.h"
 #include "runtime/ComCallbackDispatcher.h"
 #include "runtime/NativeClientResources.h"
+#include "NostrJsonSerializer.h"
 
 namespace com::nostr::native
 {
-class NostrJsonSerializer;
 class CNostrSubscription;
 
 struct RelaySessionData
 {
+    struct SubscriptionOptionsData
+    {
+        bool keepAlive = true;
+        std::optional<double> autoRequeryWindowSeconds;
+        std::optional<uint32_t> maxQueueLength;
+        QueueOverflowStrategy overflowStrategy = QueueOverflowStrategy_DropOldest;
+    };
+
     struct SubscriptionEntry
     {
         std::wstring id;
         ATL::CComPtr<INostrEventCallback> callback;
         SubscriptionStatus status = SubscriptionStatus_Pending;
         CNostrSubscription* owner = nullptr;
+        std::vector<NostrJsonSerializer::FilterData> filters;
+        SubscriptionOptionsData options;
+        std::vector<ATL::CComPtr<IDispatch>> originalFilters;
     };
 
     RelaySessionData() = default;
@@ -173,12 +184,19 @@ public:
     HRESULT FinalConstruct() noexcept;
     void FinalRelease() noexcept;
 
+    HRESULT Initialize(std::shared_ptr<RelaySessionData> state,
+                       std::shared_ptr<RelaySessionData::SubscriptionEntry> entry);
+
     // INostrSubscription
     STDMETHOD(get_Id)(BSTR* value) override;
     STDMETHOD(get_Status)(SubscriptionStatus* value) override;
     STDMETHOD(get_Filters)(SAFEARRAY** value) override;
     STDMETHOD(UpdateFilters)(SAFEARRAY* filters) override;
     STDMETHOD(Close)() override;
+
+private:
+    std::weak_ptr<RelaySessionData> state_;
+    std::weak_ptr<RelaySessionData::SubscriptionEntry> entry_;
 };
 class ATL_NO_VTABLE CNostrSigner
     : public ATL::CComObjectRootEx<ATL::CComMultiThreadModel>
