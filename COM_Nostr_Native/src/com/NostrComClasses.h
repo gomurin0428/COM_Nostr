@@ -5,6 +5,8 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "resource.h"
 #include "COMNostrNative_i.h"
@@ -15,6 +17,22 @@
 namespace com::nostr::native
 {
 class NostrJsonSerializer;
+
+struct RelaySessionData
+{
+    RelaySessionData() = default;
+    RelaySessionData(const RelaySessionData&) = delete;
+    RelaySessionData& operator=(const RelaySessionData&) = delete;
+
+    std::wstring url;
+    bool readEnabled = true;
+    bool writeEnabled = true;
+    bool preferred = false;
+    std::wstring metadataJson;
+    std::vector<int> supportedNips;
+    std::unique_ptr<INativeWebSocket> webSocket;
+    ATL::CComPtr<INostrAuthCallback> authCallback;
+};
 
 class ATL_NO_VTABLE CNostrClient
     : public ATL::CComObjectRootEx<ATL::CComMultiThreadModel>
@@ -62,6 +80,7 @@ private:
     std::unique_ptr<NativeClientResources> resources_;
     std::shared_ptr<NostrJsonSerializer> serializer_;
     std::unique_ptr<ComCallbackDispatcher> dispatcher_;
+    std::unordered_map<std::wstring, std::shared_ptr<RelaySessionData>> relaySessions_;
 };
 
 class ATL_NO_VTABLE CNostrRelaySession
@@ -81,6 +100,7 @@ public:
         COM_INTERFACE_ENTRY(IDispatch)
     END_COM_MAP()
 
+    HRESULT Initialize(std::shared_ptr<RelaySessionData> state);
     HRESULT FinalConstruct() noexcept;
     void FinalRelease() noexcept;
 
@@ -95,6 +115,9 @@ public:
     STDMETHOD(Close)() override;
     STDMETHOD(GetDescriptor)(IDispatch** value) override;
     STDMETHOD(UpdatePolicy)(IDispatch* descriptor) override;
+
+private:
+    std::weak_ptr<RelaySessionData> state_;
 };
 class ATL_NO_VTABLE CNostrSubscription
     : public ATL::CComObjectRootEx<ATL::CComMultiThreadModel>

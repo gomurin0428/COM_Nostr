@@ -107,3 +107,6 @@
 - 2025-09-25T11:40:50+09:00 CComDispatchDriver 修正後の再ビルドを開始。
 - 2025-09-25T11:41:33+09:00 ComCallbackDispatcher ヘッダ取り込み後に msbuild 再実行開始。
 - 2025-09-25T11:42:02+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) が成功。
+- 2025-09-25T11:57:42+09:00 最新変更の検証として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) を再実行開始。
+- 2025-09-25T11:58:29+09:00 CComObject 名前空間修正後に msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) を再実行開始。
+- 2025-09-25T11:58:55+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) が成功。
