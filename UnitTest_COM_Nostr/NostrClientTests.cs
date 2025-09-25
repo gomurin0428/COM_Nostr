@@ -192,7 +192,15 @@ public sealed class NostrClientTests
             };
 
             var authCallback = new NullAuthCallback();
-            session = client.ConnectRelay(relayDescriptor, authCallback);
+            try
+            {
+                session = client.ConnectRelay(relayDescriptor, authCallback);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail($"ConnectRelay threw {ex.GetType().FullName} hr=0x{ex.HResult:X8}: {ex.Message}");
+            }
+
             await WaitForSessionStateAsync(session, COMNostrNativeLib.RelaySessionState.RelaySessionState_Connected, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
 
             subscriptionOptions = new COMNostrNativeLib.SubscriptionOptions
@@ -294,7 +302,15 @@ public sealed class NostrClientTests
             };
 
             var authCallback = new NullAuthCallback();
-            session = client.ConnectRelay(relayDescriptor, authCallback);
+            try
+            {
+                session = client.ConnectRelay(relayDescriptor, authCallback);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail($"ConnectRelay threw {ex.GetType().FullName} hr=0x{ex.HResult:X8}: {ex.Message}");
+            }
+
             await WaitForSessionStateAsync(session, COMNostrNativeLib.RelaySessionState.RelaySessionState_Connected, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
 
             subscriptionOptions = new COMNostrNativeLib.SubscriptionOptions
@@ -412,7 +428,15 @@ public sealed class NostrClientTests
             };
 
             var authCallback = new NullAuthCallback();
-            session = client.ConnectRelay(relayDescriptor, authCallback);
+            try
+            {
+                session = client.ConnectRelay(relayDescriptor, authCallback);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail($"ConnectRelay threw {ex.GetType().FullName} hr=0x{ex.HResult:X8}: {ex.Message}");
+            }
+
             await WaitForSessionStateAsync(session, COMNostrNativeLib.RelaySessionState.RelaySessionState_Connected, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
 
             subscriptionOptions = new COMNostrNativeLib.SubscriptionOptions

@@ -14,6 +14,8 @@
 - 過去の環境から `packages/native/ixwebsocket` が残っていると、存在しないヘッダー/ライブラリへ誤って依存しているように見える。今回の変更でプロジェクトから参照を外しているため、ローカルに残っていた場合は手動でディレクトリを削除してからビルドを再実行する。
 - PowerShell 7 (`pwsh`) で `pwsh -Command & { ... }` のようにコマンド引数へ直接スクリプトブロックを渡すと `ScriptBlock should only be specified as a value of the Command parameter.` というパースエラーになる。`-Command "<script>"` の形式で 1 つの文字列としてスクリプト全体を渡すか、`$script = '...'; pwsh -Command $script` として実行すれば意図どおりに動作する。
 - Desktop Commander の `start_process` 経由で `pwsh` を呼び出すと内部で Windows PowerShell (`powershell.exe`) が起動し、環境によっては 0x8009001d (KEYSET_DOES_NOT_EXIST) で初期化に失敗することがある。長時間処理を走らせたい場合は `shell` コマンドで `timeout_ms` を指定するか、`start_process` で `cmd /c` を挟んでから `pwsh` を起動する。
+- PowerShell で空白を含むパスを指定する `Get-ChildItem "C:\Program Files\..."` などを実行すると、引用符のエスケープが不足して `A positional parameter cannot be found ...` のパースエラーが出ることがある。単一引用符 `'C:\Program Files\...` を使うか、パス全体を `"` で囲んで 1 引数として渡す。
+- Visual Studio 付属の `vstest.console.exe` は既定 PATH に含まれていないため、`& 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe' ...` のようにフルパスで呼び出す。PATH に登録せずに素の `vstest.console` を実行すると PowerShell で `The term 'vstest.console' is not recognized` が発生する。
 - WinHTTP API をリンクし忘れると `LNK2019: unresolved external symbol WinHttpWebSocket*` などのリンク エラーが出る。`COM_Nostr_Native.vcxproj` / `NostrNativeTests.vcxproj` の `<AdditionalDependencies>` に `winhttp.lib` が入っているか確認する。
 - `COM_Nostr_Native` の MIDL が `MIDL2025: ... near "IDispatch"` で停止する場合は、IDL 内の各 `coclass` で `[default] interface IDispatch;` のように `interface` キーワード付きで既定インターフェイスを宣言しているか確認し、修正後に `msbuild COM_Nostr_Native.vcxproj /t:Clean;Build /p:Configuration=Debug /p:Platform=x64` を実行する。
 - `COM_Nostr_NativePS` ビルドで "MIDL will not generate DLLDATA.C" が出た場合は、既存の生成済み `*_p.c`/`dlldata.c` を探す代わりに `Stub.cpp` が配置されているかを確認し、`msbuild COM_Nostr_NativePS.vcxproj /t:Clean;Build /p:Configuration=Debug /p:Platform=x64` を実行してスタブ DLL を再生成する。
@@ -23,6 +25,7 @@
 - PowerShell 7 (pwsh) は .NET 9 系ランタイムを事前読み込みするため、`New-Object -ComObject COM_Nostr.NostrClient` で 0x800080A5 (CO_E_CLRNOTAVAILABLE) が発生することがある。その場合は Windows PowerShell 5.1 (`powershell.exe`) など .NET Framework ホストか、Excel/VBA 等のネイティブクライアント経由で参照する。
 - `tlbexp.exe` (.NET Framework 4.x) は net8.0-windows 向けにビルドした `COM_Nostr.dll` を読み込む際に GAC から `System.Runtime, Version=8.0.0.0` を解決できず TX0000 エラーで停止する。公式ドキュメントにもあるとおり、.NET Core/.NET 5+ ではアセンブリから TLB を生成する機能が提供されないため、TLB が必要な場合は MIDL で IDL から生成するか、既存の TLB を用意して `<ComHostTypeLibrary>` で埋め込む運用に切り替える。
 - UnitTest_COM_Nostr の `COMReference` はレジストリに `COM_Nostr` の Type Library が登録されていないと `MSB3284` で失敗する。COM コンポーネントを `regsvr32 COM_Nostr.comhost.dll` で登録し、`COM_Nostr.tlb` も `regtlibv12` などで登録した状態でビルド・テストを実行するか、開発環境に手動で TLB を配置して `ResolveComReference` が参照できるようにする。
+- ConnectRelay で `System.InvalidCastException (0x80004002)` が発生する場合は、ネイティブ DLL と Type Library のインターフェイス定義が食い違っている可能性が高い。`regsvr32 COM_Nostr_Native\x64\Debug\COM_Nostr_Native.dll` を再実行し、最新の IDL から生成した `COM_Nostr_Native.tlb` を `regtlib` 等で再登録してから COM 参照を更新する。
 
 - 32bit PowerShell (例: `C:\\Windows\\SysWOW64\\WindowsPowerShell\\v1.0\\powershell.exe`) から `COM_Nostr.comhost.dll` を登録すると WOW6432Node 側にのみ CLSID が書き込まれ、64bit クライアント (Excel 64bit 等) では `REGDB_E_CLASSNOTREG` となる。登録・動作確認はいずれも 64bit ホストで行うこと。
 

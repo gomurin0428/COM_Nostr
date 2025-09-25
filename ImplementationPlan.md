@@ -6,7 +6,7 @@
 - ビルド・登録・デバッグ手順を最新化し、他開発者が追加作業なしでビルド／テスト／配布できる状態を作る。
 
 ## 現状整理 (2025-09-25 時点)
-- プロジェクトは C++/ATL の骨組みが作成済みだが、`CNostrClient` / `CNostrRelaySession` / `CNostrSubscription` の全メソッドが `E_NOTIMPL` スタブのまま。
+- プロジェクトは C++/ATL の骨組みが作成済みで、`CNostrClient` の主要メソッド (Initialize/SetSigner/ConnectRelay/OpenSubscription/PublishEvent/RespondAuth) まで実装済み。`CNostrRelaySession` や `CNostrSubscription` の残りメソッドは引き続き `E_NOTIMPL` を置き換え中。
 - DTO とシリアライザ、WinHTTP ベースのランタイムコンポーネントは雛形が存在するが、セッション管理・購読・イベント送受信との接続が未実装。
 - C# MSTest 側では COM_Nostr_Native 完成後に通すことを想定したテストケースが追加済みだが、現状は `E_NOTIMPL` により失敗する。
 - msbuild による Debug/Release|x64 ビルドは依存ライブラリ整備後に成功しており、レジストリ登録もオブジェクトマップ拡張で準備済み。
@@ -27,7 +27,7 @@
 - [x] `ConnectRelay`: RelayDescriptor 検証→セッション生成→NIP-11 取得→WebSocket 接続→セッション辞書登録→`INostrAuthCallback` 通知の流れを実装。
 - [x] `DisconnectRelay` / `HasRelay` / `ListRelays`: セッション辞書を同期化し、URL 正規化 (`RelayUriUtilities`) を通じて判定。
 - [x] `OpenSubscription`: フィルタ検証、購読生成、コールバック登録、`SubscriptionOptions` 適用を行い、購読 ID を返す。
-- [ ] `PublishEvent` / `RespondAuth`: 署名補完、JSON 生成、送信、`LastOkResult` 更新、タイムアウト (`HRESULT_FROM_WIN32(ERROR_TIMEOUT)`) 処理を実装。
+- [x] `PublishEvent` / `RespondAuth`: 署名補完、JSON 生成、送信、`LastOkResult` 更新、タイムアウト (`HRESULT_FROM_WIN32(ERROR_TIMEOUT)`) 処理を実装し、OK 応答を `CNostrRelaySession::DispatchOkMessage` で待機側と `INostrRelaySession.LastOkResult` に反映。
 - [ ] `RefreshRelayInfo`: NIP-11 再取得と `RelayDescriptor.Metadata` 更新をセッションへ委譲。
 - [ ] Dispose/FinalRelease: 受信スレッド・セッション・購読を順次停止し、コールバックスレッドを解放。
 
@@ -84,3 +84,4 @@
 - `INostrSigner` の外部依存が未準備の場合にテストが失敗する → テスト前に既定サイナー (C# 実装) を登録する PowerShell スクリプトを整備。
 - docker 環境差異で strfry 起動が遅延する → テストヘルパーでリトライとログ収集を実装し、タイムアウトは 20 秒→40 秒まで段階的に拡張。
 - COM コールバック STA スレッドが停止するリスク → `ComCallbackDispatcher` にウォッチドッグと停止検出ログを追加し、TROUBLESHOOTING に復旧手順を記載。
+- ネイティブ IDL と Type Library が更新漏れになるリスク → `regsvr32` と `regtlib` をセットで再実行し、Interop 参照を再生成しないと `0x80004002` (E_NOINTERFACE) が発生するため、ビルドパイプラインに再登録ステップを追加する。

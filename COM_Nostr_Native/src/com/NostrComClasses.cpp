@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cwctype>
 #include <limits>
@@ -578,14 +579,14 @@ namespace
         ATL::CComQIPtr<IRelayDescriptor> relay(dispatch);
         if (!relay)
         {
-            return DISP_E_TYPEMISMATCH;
+            return MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x7601);
         }
 
         CComBSTR url;
         HRESULT hr = relay->get_Url(&url);
         if (FAILED(hr))
         {
-            return hr;
+            return MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x7602);
         }
 
         if (!url || SysStringLen(url) == 0)
@@ -596,28 +597,44 @@ namespace
         data.url = BstrToWString(url);
 
         VARIANT_BOOL flag = VARIANT_TRUE;
-        if (SUCCEEDED(relay->get_ReadEnabled(&flag)))
+        hr = relay->get_ReadEnabled(&flag);
+        if (FAILED(hr))
         {
-            data.readEnabled = flag == VARIANT_TRUE;
+            return MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x7603);
         }
+        data.readEnabled = flag == VARIANT_TRUE;
 
         flag = VARIANT_TRUE;
-        if (SUCCEEDED(relay->get_WriteEnabled(&flag)))
+        hr = relay->get_WriteEnabled(&flag);
+        if (FAILED(hr))
         {
-            data.writeEnabled = flag == VARIANT_TRUE;
+            return MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x7604);
         }
+        data.writeEnabled = flag == VARIANT_TRUE;
 
         flag = VARIANT_FALSE;
-        if (SUCCEEDED(relay->get_Preferred(&flag)))
+        hr = relay->get_Preferred(&flag);
+        if (FAILED(hr))
         {
-            data.preferred = flag == VARIANT_TRUE;
+            return MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x7605);
         }
+        data.preferred = flag == VARIANT_TRUE;
 
         CComVariant metadata;
-        if (SUCCEEDED(relay->get_Metadata(&metadata)) && VariantHasValue(metadata))
+        hr = relay->get_Metadata(&metadata);
+        if (FAILED(hr))
+        {
+            return MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x7606);
+        }
+        if (VariantHasValue(metadata))
         {
             CComVariant copy(metadata);
-            if (SUCCEEDED(copy.ChangeType(VT_BSTR)) && copy.bstrVal)
+            hr = copy.ChangeType(VT_BSTR);
+            if (FAILED(hr))
+            {
+                return MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x7607);
+            }
+            if (copy.bstrVal)
             {
                 data.metadataJson = BstrToWString(copy.bstrVal);
             }
@@ -926,6 +943,12 @@ namespace
             return;
         }
 
+        {
+            std::lock_guard<std::mutex> guard(state->authMutex);
+            state->pendingAuthChallenge = message.challenge;
+            state->pendingAuthExpiresAt = message.expiresAt;
+        }
+
         ATL::CComPtr<INostrAuthCallback> authCallback = state->authCallback;
         if (!authCallback)
         {
@@ -973,12 +996,15 @@ namespace
         }
 
         {
-            std::lock_guard<std::mutex> guard(state->lastOkMutex);
+            std::unique_lock<std::mutex> guard(state->lastOkMutex);
             state->hasLastOk = true;
             state->lastOkSuccess = message.success;
             state->lastOkEventId = message.eventId;
             state->lastOkMessageText = message.message;
+            ++state->lastOkVersion;
         }
+
+        state->lastOkCondition.notify_all();
 
         if (!message.success && dispatcher)
         {
@@ -1130,6 +1156,430 @@ namespace
         }
 
         state->state.store(RelaySessionState_Disconnected, std::memory_order_release);
+        state->lastOkCondition.notify_all();
+    }
+
+    HRESULT CreateSafeArrayFromEventTags(const std::vector<std::vector<std::wstring>>& tags,
+                                         SAFEARRAY** result)
+    {
+        if (!result)
+        {
+            return E_POINTER;
+        }
+
+        *result = nullptr;
+
+        std::vector<std::vector<CComBSTR>> converted;
+        converted.reserve(tags.size());
+        for (const auto& tag : tags)
+        {
+            std::vector<CComBSTR> row;
+            row.reserve(tag.size());
+            for (const auto& value : tag)
+            {
+                row.emplace_back(value.c_str());
+            }
+
+            converted.push_back(std::move(row));
+        }
+
+        return CreateSafeArrayFromTagMatrix(converted, result);
+    }
+
+    HRESULT WriteEventBackToDispatch(IDispatch* dispatch, const NostrJsonSerializer::EventData& event)
+    {
+        if (!dispatch)
+        {
+            return E_POINTER;
+        }
+
+        ATL::CComDispatchDriver driver(dispatch);
+        if (!driver)
+        {
+            return DISP_E_TYPEMISMATCH;
+        }
+
+        HRESULT hr = S_OK;
+
+        CComVariant value(event.id.c_str());
+        hr = driver.PutProperty(1, &value);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        value = CComVariant(event.publicKey.c_str());
+        hr = driver.PutProperty(2, &value);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        value = CComVariant(event.createdAt);
+        hr = driver.PutProperty(3, &value);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        value = CComVariant(event.kind);
+        hr = driver.PutProperty(4, &value);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        SAFEARRAY* tagsArray = nullptr;
+        hr = CreateSafeArrayFromEventTags(event.tags, &tagsArray);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        CComVariant tagsVariant;
+        tagsVariant.vt = VT_ARRAY | VT_VARIANT;
+        tagsVariant.parray = tagsArray;
+        hr = driver.PutProperty(5, &tagsVariant);
+        tagsVariant.parray = nullptr;
+        tagsVariant.vt = VT_EMPTY;
+        SafeArrayDestroy(tagsArray);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        value = CComVariant(event.content.c_str());
+        hr = driver.PutProperty(6, &value);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        value = CComVariant(event.signature.c_str());
+        return driver.PutProperty(7, &value);
+    }
+
+    HRESULT CreateEventDraftDispatch(const NostrJsonSerializer::EventData& event,
+                                     IDispatch** draftDispatch)
+    {
+        if (!draftDispatch)
+        {
+            return E_POINTER;
+        }
+
+        *draftDispatch = nullptr;
+
+        ATL::CComObject<CNostrEventDraft>* draft = nullptr;
+        HRESULT hr = ATL::CComObject<CNostrEventDraft>::CreateInstance(&draft);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        draft->AddRef();
+        hr = draft->put_PublicKey(CComBSTR(event.publicKey.c_str()));
+        if (SUCCEEDED(hr))
+        {
+            hr = draft->put_CreatedAt(event.createdAt);
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            hr = draft->put_Kind(event.kind);
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            SAFEARRAY* tagsArray = nullptr;
+            hr = CreateSafeArrayFromEventTags(event.tags, &tagsArray);
+            if (SUCCEEDED(hr))
+            {
+                hr = draft->put_Tags(tagsArray);
+                SafeArrayDestroy(tagsArray);
+            }
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            hr = draft->put_Content(CComBSTR(event.content.c_str()));
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            hr = draft->QueryInterface(IID_IDispatch, reinterpret_cast<void**>(draftDispatch));
+        }
+
+        draft->Release();
+        return hr;
+    }
+
+    HRESULT ComputeEventId(const NostrJsonSerializer::EventData& event, std::wstring& eventId)
+    {
+        eventId.clear();
+
+        if (!std::isfinite(event.createdAt))
+        {
+            return hresults::InvalidArgument();
+        }
+
+        constexpr double kMaxTimestamp = static_cast<double>((std::numeric_limits<long long>::max)());
+        constexpr double kMinTimestamp = static_cast<double>((std::numeric_limits<long long>::min)());
+        if (event.createdAt > kMaxTimestamp || event.createdAt < kMinTimestamp)
+        {
+            return hresults::InvalidArgument();
+        }
+
+        const long long integralCreatedAt = static_cast<long long>(std::llround(event.createdAt));
+
+        json payload = json::array();
+        payload.push_back(0);
+        payload.push_back(WideToUtf8(event.publicKey));
+        payload.push_back(integralCreatedAt);
+        payload.push_back(event.kind);
+
+        json tags = json::array();
+        for (const auto& tag : event.tags)
+        {
+            json tagArray = json::array();
+            for (const auto& value : tag)
+            {
+                tagArray.push_back(WideToUtf8(value));
+            }
+            tags.push_back(std::move(tagArray));
+        }
+
+        payload.push_back(std::move(tags));
+        payload.push_back(WideToUtf8(event.content));
+
+        const std::string serialized = payload.dump();
+
+        BCRYPT_ALG_HANDLE algorithm = nullptr;
+        BCRYPT_HASH_HANDLE hash = nullptr;
+
+        NTSTATUS status = BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
+        if (!BCRYPT_SUCCESS(status))
+        {
+            return HRESULT_FROM_NT(status);
+        }
+
+        ULONG objectLength = 0;
+        ULONG resultLength = 0;
+        status = BCryptGetProperty(algorithm,
+                                   BCRYPT_OBJECT_LENGTH,
+                                   reinterpret_cast<PUCHAR>(&objectLength),
+                                   sizeof(objectLength),
+                                   &resultLength,
+                                   0);
+        if (!BCRYPT_SUCCESS(status))
+        {
+            BCryptCloseAlgorithmProvider(algorithm, 0);
+            return HRESULT_FROM_NT(status);
+        }
+
+        std::vector<uint8_t> hashObject(objectLength);
+        status = BCryptCreateHash(algorithm,
+                                  &hash,
+                                  hashObject.data(),
+                                  static_cast<ULONG>(hashObject.size()),
+                                  nullptr,
+                                  0,
+                                  0);
+        if (!BCRYPT_SUCCESS(status))
+        {
+            BCryptCloseAlgorithmProvider(algorithm, 0);
+            return HRESULT_FROM_NT(status);
+        }
+
+        ULONG hashLength = 0;
+        status = BCryptGetProperty(algorithm,
+                                   BCRYPT_HASH_LENGTH,
+                                   reinterpret_cast<PUCHAR>(&hashLength),
+                                   sizeof(hashLength),
+                                   &resultLength,
+                                   0);
+        if (!BCRYPT_SUCCESS(status))
+        {
+            BCryptDestroyHash(hash);
+            BCryptCloseAlgorithmProvider(algorithm, 0);
+            return HRESULT_FROM_NT(status);
+        }
+
+        std::vector<uint8_t> hashBuffer(hashLength);
+
+        status = BCryptHashData(hash,
+                                reinterpret_cast<PUCHAR>(const_cast<char*>(serialized.data())),
+                                static_cast<ULONG>(serialized.size()),
+                                0);
+        if (BCRYPT_SUCCESS(status))
+        {
+            status = BCryptFinishHash(hash, hashBuffer.data(), static_cast<ULONG>(hashBuffer.size()), 0);
+        }
+
+        BCryptDestroyHash(hash);
+        BCryptCloseAlgorithmProvider(algorithm, 0);
+
+        if (!BCRYPT_SUCCESS(status))
+        {
+            return HRESULT_FROM_NT(status);
+        }
+
+        static constexpr wchar_t kHexDigits[] = L"0123456789abcdef";
+        std::wstring hex;
+        hex.reserve(hashBuffer.size() * 2);
+        for (uint8_t value : hashBuffer)
+        {
+            hex.push_back(kHexDigits[(value >> 4) & 0x0F]);
+            hex.push_back(kHexDigits[value & 0x0F]);
+        }
+
+        eventId = std::move(hex);
+        return S_OK;
+    }
+
+    HRESULT CallSignerGetPublicKey(INostrSigner* signer, std::wstring& publicKey)
+    {
+        publicKey.clear();
+        if (!signer)
+        {
+            return hresults::PointerRequired();
+        }
+
+        DISPPARAMS params{};
+        CComVariant result;
+        const HRESULT hr = signer->Invoke(2, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &result, nullptr, nullptr);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        HRESULT converted = result.ChangeType(VT_BSTR);
+        if (FAILED(converted))
+        {
+            return converted;
+        }
+
+        if (result.bstrVal)
+        {
+            publicKey = BstrToWString(result.bstrVal);
+        }
+
+        return S_OK;
+    }
+
+    HRESULT CallSignerSign(INostrSigner* signer, IDispatch* draft, std::wstring& signature)
+    {
+        signature.clear();
+        if (!signer || !draft)
+        {
+            return hresults::PointerRequired();
+        }
+
+        CComVariant arg(draft);
+        if (arg.vt != VT_DISPATCH || !arg.pdispVal)
+        {
+            return hresults::PointerRequired();
+        }
+
+        DISPPARAMS params{};
+        params.cArgs = 1;
+        params.rgvarg = &arg;
+
+        CComVariant result;
+        HRESULT hr = signer->Invoke(1, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &result, nullptr, nullptr);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        hr = result.ChangeType(VT_BSTR);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        if (result.bstrVal)
+        {
+            signature = BstrToWString(result.bstrVal);
+        }
+
+        return S_OK;
+    }
+
+    DWORD ResolveOkWaitTimeoutMilliseconds(const RelaySessionData& state)
+    {
+        const auto& timeout = state.runtimeOptions.ReceiveTimeout();
+        if (timeout && timeout->count() > 0)
+        {
+            const long long value = timeout->count();
+            if (value <= 0)
+            {
+                return 10000;
+            }
+
+            if (value > static_cast<long long>((std::numeric_limits<DWORD>::max)()))
+            {
+                return (std::numeric_limits<DWORD>::max)();
+            }
+
+            return static_cast<DWORD>(value);
+        }
+
+        return 10000;
+    }
+
+    HRESULT WaitForOkResult(const std::shared_ptr<RelaySessionData>& state,
+                            uint64_t initialVersion,
+                            const std::wstring& expectedEventId,
+                            DWORD timeoutMilliseconds,
+                            bool& success,
+                            std::wstring& message)
+    {
+        success = false;
+        message.clear();
+
+        if (!state)
+        {
+            return hresults::PointerRequired();
+        }
+
+        if (timeoutMilliseconds == 0)
+        {
+            return hresults::Timeout();
+        }
+
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMilliseconds);
+        std::unique_lock<std::mutex> lock(state->lastOkMutex);
+
+        for (;;)
+        {
+            if (state->lastOkVersion > initialVersion)
+            {
+                if (state->hasLastOk && (expectedEventId.empty() || state->lastOkEventId == expectedEventId))
+                {
+                    success = state->lastOkSuccess;
+                    message = state->lastOkMessageText;
+                    return S_OK;
+                }
+
+                initialVersion = state->lastOkVersion;
+            }
+
+            if (state->stopRequested.load(std::memory_order_acquire))
+            {
+                return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+            }
+
+            if (std::chrono::steady_clock::now() >= deadline)
+            {
+                return hresults::Timeout();
+            }
+
+            const auto waitResult = state->lastOkCondition.wait_until(lock, deadline);
+            if (waitResult == std::cv_status::timeout)
+            {
+                return hresults::Timeout();
+            }
+        }
     }
 }
 
@@ -1775,16 +2225,459 @@ STDMETHODIMP CNostrClient::OpenSubscription(BSTR relayUrl, SAFEARRAY* filters, I
 }
 STDMETHODIMP CNostrClient::PublishEvent(BSTR relayUrl, IDispatch* eventPayload)
 {
-    UNREFERENCED_PARAMETER(relayUrl);
-    UNREFERENCED_PARAMETER(eventPayload);
-    return E_NOTIMPL;
+    if (!relayUrl || !eventPayload)
+    {
+        return hresults::PointerRequired();
+    }
+
+    std::wstring normalizedUrl;
+    HRESULT hr = NormalizeRelayUrl(BstrToWString(relayUrl), normalizedUrl);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    std::shared_ptr<RelaySessionData> state;
+    std::shared_ptr<NostrJsonSerializer> serializer;
+    CComPtr<INostrSigner> signer;
+
+    {
+        ATL::CComCritSecLock<ATL::CComAutoCriticalSection> guard(stateLock_);
+        if (disposed_)
+        {
+            return hresults::E_NOSTR_OBJECT_DISPOSED;
+        }
+
+        if (!initialized_ || !serializer_)
+        {
+            return hresults::E_NOSTR_NOT_INITIALIZED;
+        }
+
+        const auto it = relaySessions_.find(normalizedUrl);
+        if (it == relaySessions_.end())
+        {
+            return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+        }
+
+        state = it->second;
+        serializer = serializer_;
+        signer = signer_;
+    }
+
+    if (!state || !state->webSocket)
+    {
+        return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+    }
+
+    if (!state->writeEnabled)
+    {
+        return hresults::InvalidArgument();
+    }
+
+    if (!serializer)
+    {
+        return E_UNEXPECTED;
+    }
+
+    if (!signer)
+    {
+        return hresults::E_NOSTR_SIGNER_MISSING;
+    }
+
+    NostrJsonSerializer::EventData eventData;
+    hr = serializer->ReadEventFromDispatch(eventPayload, eventData);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    bool requiresSigning = eventData.id.empty() || eventData.signature.empty() || eventData.publicKey.empty();
+
+    if (requiresSigning)
+    {
+        if (eventData.publicKey.empty())
+        {
+            std::wstring publicKey;
+            hr = CallSignerGetPublicKey(signer, publicKey);
+            if (FAILED(hr))
+            {
+                return hr;
+            }
+
+            if (publicKey.empty())
+            {
+                return hresults::InvalidArgument();
+            }
+
+            eventData.publicKey = std::move(publicKey);
+        }
+
+        CComPtr<IDispatch> draftDispatch;
+        hr = CreateEventDraftDispatch(eventData, &draftDispatch);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        std::wstring signature;
+        hr = CallSignerSign(signer, draftDispatch, signature);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        if (signature.empty())
+        {
+            return hresults::InvalidArgument();
+        }
+
+        std::wstring eventId;
+        hr = ComputeEventId(eventData, eventId);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        eventData.id = std::move(eventId);
+        eventData.signature = std::move(signature);
+    }
+    else if (eventData.id.empty())
+    {
+        std::wstring eventId;
+        hr = ComputeEventId(eventData, eventId);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
+        eventData.id = std::move(eventId);
+    }
+
+    hr = WriteEventBackToDispatch(eventPayload, eventData);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    const auto payload = serializer->SerializeEvent(eventData);
+
+    uint64_t initialVersion = 0;
+    {
+        std::lock_guard<std::mutex> lock(state->lastOkMutex);
+        initialVersion = state->lastOkVersion;
+    }
+
+    hr = state->webSocket->SendText(payload, true);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    const DWORD timeout = ResolveOkWaitTimeoutMilliseconds(*state);
+    bool okSuccess = false;
+    std::wstring okMessage;
+    hr = WaitForOkResult(state, initialVersion, eventData.id, timeout, okSuccess, okMessage);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    if (!okSuccess)
+    {
+        return hresults::WebSocketFailure();
+    }
+
+    return S_OK;
 }
 
 STDMETHODIMP CNostrClient::RespondAuth(BSTR relayUrl, IDispatch* authEvent)
 {
-    UNREFERENCED_PARAMETER(relayUrl);
-    UNREFERENCED_PARAMETER(authEvent);
-    return E_NOTIMPL;
+    if (!relayUrl || !authEvent)
+    {
+        return hresults::PointerRequired();
+    }
+
+    std::wstring normalizedUrl;
+    HRESULT hr = NormalizeRelayUrl(BstrToWString(relayUrl), normalizedUrl);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    std::shared_ptr<RelaySessionData> state;
+    std::shared_ptr<NostrJsonSerializer> serializer;
+    CComPtr<INostrSigner> signer;
+
+    {
+        ATL::CComCritSecLock<ATL::CComAutoCriticalSection> guard(stateLock_);
+        if (disposed_)
+        {
+            return hresults::E_NOSTR_OBJECT_DISPOSED;
+        }
+
+        if (!initialized_ || !serializer_)
+        {
+            return hresults::E_NOSTR_NOT_INITIALIZED;
+        }
+
+        const auto it = relaySessions_.find(normalizedUrl);
+        if (it == relaySessions_.end())
+        {
+            return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+        }
+
+        state = it->second;
+        serializer = serializer_;
+        signer = signer_;
+    }
+
+    if (!state || !state->webSocket)
+    {
+        return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+    }
+
+    if (!state->writeEnabled)
+    {
+        return hresults::InvalidArgument();
+    }
+
+    if (!serializer)
+    {
+        return E_UNEXPECTED;
+    }
+
+    if (!signer)
+    {
+        return hresults::E_NOSTR_SIGNER_MISSING;
+    }
+
+    NostrJsonSerializer::EventData eventData;
+    hr = serializer->ReadEventFromDispatch(authEvent, eventData);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    constexpr int kAuthKind = 22242;
+    if (eventData.kind == 0)
+    {
+        eventData.kind = kAuthKind;
+    }
+    else if (eventData.kind != kAuthKind)
+    {
+        return hresults::InvalidArgument();
+    }
+
+    if (!std::isfinite(eventData.createdAt) || eventData.createdAt <= 0.0)
+    {
+        const auto now = std::chrono::system_clock::now();
+        const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+        eventData.createdAt = static_cast<double>(seconds);
+    }
+
+    std::optional<std::wstring> storedChallenge;
+    std::optional<double> storedExpires;
+    {
+        std::lock_guard<std::mutex> guard(state->authMutex);
+        storedChallenge = state->pendingAuthChallenge;
+        storedExpires = state->pendingAuthExpiresAt;
+    }
+
+    std::wstring challengeValue;
+    bool relayTagFound = false;
+    bool challengeTagFound = false;
+
+    for (auto& tag : eventData.tags)
+    {
+        if (tag.empty())
+        {
+            continue;
+        }
+
+        const std::wstring& label = tag[0];
+        if (label == L"relay")
+        {
+            relayTagFound = true;
+            if (tag.size() < 2)
+            {
+                tag.resize(2);
+            }
+            tag[1] = state->url;
+        }
+        else if (label == L"challenge")
+        {
+            challengeTagFound = true;
+            if (tag.size() >= 2)
+            {
+                challengeValue = tag[1];
+            }
+        }
+    }
+
+    if (!relayTagFound)
+    {
+        eventData.tags.push_back({ L"relay", state->url });
+    }
+
+    if (challengeValue.empty() && storedChallenge && !storedChallenge->empty())
+    {
+        challengeValue = *storedChallenge;
+    }
+
+    if (challengeValue.empty())
+    {
+        return hresults::InvalidArgument();
+    }
+
+    if (storedChallenge && !storedChallenge->empty() && challengeValue != *storedChallenge)
+    {
+        return hresults::InvalidArgument();
+    }
+
+    if (storedExpires && *storedExpires > 0.0)
+    {
+        const auto nowSeconds = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        if (static_cast<double>(nowSeconds) > *storedExpires)
+        {
+            return hresults::InvalidArgument();
+        }
+    }
+
+    if (!challengeTagFound)
+    {
+        eventData.tags.push_back({ L"challenge", challengeValue });
+    }
+    else
+    {
+        for (auto& tag : eventData.tags)
+        {
+            if (!tag.empty() && tag[0] == L"challenge")
+            {
+                if (tag.size() < 2)
+                {
+                    tag.resize(2);
+                }
+                tag[1] = challengeValue;
+                break;
+            }
+        }
+    }
+
+    std::wstring publicKey;
+    hr = CallSignerGetPublicKey(signer, publicKey);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    if (publicKey.empty())
+    {
+        return hresults::InvalidArgument();
+    }
+
+    eventData.publicKey = std::move(publicKey);
+    eventData.signature.clear();
+    eventData.id.clear();
+
+    {
+        std::lock_guard<std::mutex> guard(state->authMutex);
+        state->pendingAuthChallenge = challengeValue;
+        state->pendingAuthExpiresAt = storedExpires;
+    }
+
+    CComPtr<IDispatch> draftDispatch;
+    hr = CreateEventDraftDispatch(eventData, &draftDispatch);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    std::wstring signature;
+    hr = CallSignerSign(signer, draftDispatch, signature);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    if (signature.empty())
+    {
+        return hresults::InvalidArgument();
+    }
+
+    std::wstring eventId;
+    hr = ComputeEventId(eventData, eventId);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    eventData.id = std::move(eventId);
+    eventData.signature = std::move(signature);
+
+    hr = WriteEventBackToDispatch(authEvent, eventData);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    const auto payload = serializer->SerializeAuth(eventData);
+
+    uint64_t initialVersion = 0;
+    {
+        std::lock_guard<std::mutex> lock(state->lastOkMutex);
+        initialVersion = state->lastOkVersion;
+    }
+
+    hr = state->webSocket->SendText(payload, true);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    const DWORD timeout = ResolveOkWaitTimeoutMilliseconds(*state);
+    bool okSuccess = false;
+    std::wstring okMessage;
+    hr = WaitForOkResult(state, initialVersion, eventData.id, timeout, okSuccess, okMessage);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    ATL::CComPtr<INostrAuthCallback> authCallback = state->authCallback;
+
+    if (okSuccess)
+    {
+        {
+            std::lock_guard<std::mutex> guard(state->authMutex);
+            state->pendingAuthChallenge.reset();
+            state->pendingAuthExpiresAt.reset();
+        }
+
+        if (authCallback)
+        {
+            CComVariant arg(state->url.c_str());
+            DISPPARAMS params{};
+            params.cArgs = 1;
+            params.rgvarg = &arg;
+            authCallback->Invoke(2, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+        }
+
+        return S_OK;
+    }
+
+    if (authCallback)
+    {
+        CComVariant args[2];
+        args[0] = CComVariant(okMessage.c_str());
+        args[1] = CComVariant(state->url.c_str());
+        DISPPARAMS params{};
+        params.cArgs = 2;
+        params.rgvarg = args;
+        authCallback->Invoke(3, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+    }
+
+    return hresults::WebSocketFailure();
 }
 
 STDMETHODIMP CNostrClient::RefreshRelayInfo(BSTR relayUrl)

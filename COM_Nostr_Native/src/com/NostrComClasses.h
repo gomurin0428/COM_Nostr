@@ -4,6 +4,8 @@
 #include <atlcom.h>
 
 #include <atomic>
+#include <condition_variable>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -75,10 +77,16 @@ struct RelaySessionData
     std::unordered_map<std::wstring, std::shared_ptr<SubscriptionEntry>> subscriptions;
 
     std::mutex lastOkMutex;
+    std::condition_variable lastOkCondition;
     bool hasLastOk = false;
     bool lastOkSuccess = false;
     std::wstring lastOkEventId;
     std::wstring lastOkMessageText;
+    uint64_t lastOkVersion = 0;
+
+    std::mutex authMutex;
+    std::optional<std::wstring> pendingAuthChallenge;
+    std::optional<double> pendingAuthExpiresAt;
 
     std::atomic<RelaySessionState> state{ RelaySessionState_Disconnected };
 };

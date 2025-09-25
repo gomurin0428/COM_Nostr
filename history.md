@@ -124,3 +124,22 @@
 - 2025-09-25T13:25:41+09:00 上記 msbuild が 5.0 秒で成功し、購読キュー制御実装後も Debug|x64 ビルドが通ることを確認。
 - 2025-09-25T13:26:02+09:00 新規 MSTest (Close→CLOSED シナリオ) を含めた `dotnet test UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj -c Debug` をタイムアウト20秒で実行予定。
 - 2025-09-25T13:26:28+09:00 上記 `dotnet test` は MSB4803 (.NET Core 版 MSBuild 非対応) により失敗。COM 参照付きプロジェクトのため従来通りフル .NET Framework MSBuild でのテスト実行が必要。
+- 2025-09-25T14:02:55+09:00 PublishEvent/RespondAuth 実装後の検証として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行予定。
+- 2025-09-25T14:04:02+09:00 上記ビルドエラー修正後の再検証として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で再実行予定。
+- 2025-09-25T14:04:43+09:00 PublishEvent/RespondAuth 実装後の統合テスト確認として vstest.console UnitTest_COM_Nostr/bin/Debug/net8.0-windows/UnitTest_COM_Nostr.dll をタイムアウト20秒で実行予定 (strfry デモリレー起動含む)。
+- 2025-09-25T14:08:22+09:00 RelaySession COM オブジェクト返却方式修正後の確認として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で再実行予定。
+- 2025-09-25T14:08:45+09:00 ConnectRelay 戻り値修正後の統合テストとして vstest.console UnitTest_COM_Nostr/bin/Debug/net8.0-windows/UnitTest_COM_Nostr.dll をタイムアウト20秒で再実行予定。
+- 2025-09-25T14:12:59+09:00 RelayDescriptor 診断用HRESULT差し替え後の再ビルドとして msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行予定。
+- 2025-09-25T14:15:44+09:00 テストコード暫定変更を反映するため dotnet build UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj -c Debug をタイムアウト20秒で実行予定。
+- 2025-09-25T14:16:11+09:00 .NET Framework MSBuild で UnitTest_COM_Nostr を再ビルドするため msbuild UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行予定。
+- 2025-09-25T14:17:01+09:00 AnyCPU ターゲットでもテストDLLを更新するため msbuild UnitTest_COM_Nostr/UnitTest_COM_Nostr.csproj /p:Configuration=Debug /p:Platform=AnyCPU をタイムアウト20秒で実行予定。
+- 2025-09-25T14:18:19+09:00 QI失敗経路確認のため msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行予定。
+- 2025-09-25T14:21:40+09:00 セッション QI 取得手順修正後の再ビルドとして msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行予定。
+- 2025-09-25T14:22:59+09:00 QI無しのポインタ返却に戻し msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で再実行予定。
+- 2025-09-25T15:39:51+09:00 Publish/AUTH 実装完了後の最終確認として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で実行開始予定。
+- 2025-09-25T15:40:18+09:00 上記 msbuild が成功 (警告・エラー 0)。
+- 2025-09-25T15:40:31+09:00 Publish/AUTH 統合テスト確認として vstest.console UnitTest_COM_Nostr/bin/Debug/net8.0-windows/UnitTest_COM_Nostr.dll をタイムアウト20秒で実行開始予定 (各テストが dockurr/strfry を起動)。
+- 2025-09-25T15:40:54+09:00 vstest.console がパス未登録のためコマンドが見つからず失敗 (PS1)。Visual Studio 同梱 exe を直接指定して再実行予定。
+- 2025-09-25T15:41:36+09:00 Visual Studio Community 付属 vstest.console.exe を指定して統合テストを20秒タイムアウトで再実行開始予定。
+- 2025-09-25T15:42:19+09:00 vstest.console 実行が失敗。INostrClient.ConnectRelay 呼び出しで System.InvalidCastException (0x80004002) が発生し、6件中5件のテストが失敗。COM 登録/型ライブラリの整合性要確認。
+- 2025-09-25T15:46:24+09:00 ImplementationPlan.md / README.md / TROUBLESHOOTING.md を Publish/AUTH 実装完了とテスト実行手順の最新情報で更新。

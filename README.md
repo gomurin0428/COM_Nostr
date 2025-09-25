@@ -6,7 +6,7 @@
 - 参照仕様: 「Nostrプロトコルの現行仕様まとめ.docx」に整理された NIP-01 / NIP-15 / NIP-20 / NIP-42 / NIP-65 / NIP-11 の要点。
 - 詳細設計メモは `docs/phase0_design.md` にまとめている。
 - C++/ATL 移植用の `COM_Nostr_Native` プロジェクトでも `COMNostrNative.idl` にて同一インターフェイスを定義し、実装差し替えの準備を進めている。
-- 2025-09-24 時点では `COM_Nostr_Native` の公開 CoClass (`NostrClient` / `NostrRelaySession` / `NostrSubscription` など) は未実装のため、`regsvr32` 成功後でも CLSID `{7d3091fe-ca18-49ba-835c-012991076660}` から COM オブジェクトを生成できず `CLASS_E_CLASSNOTAVAILABLE` になります。CoClass 実装と ATL オブジェクトマップを追加した後に再ビルド・再登録してください。
+- 2025-09-25 時点では `COM_Nostr_Native` の公開 CoClass (`NostrClient` / `NostrRelaySession` / `NostrSubscription` など) まで実装済みで、`regsvr32 COM_Nostr_Native\x64\Debug\COM_Nostr_Native.dll` 後に CLSID `{7d3091fe-ca18-49ba-835c-012991076660}` から COM オブジェクトを生成できる。ただし IDL/TLB の再登録を怠ると `ConnectRelay` が `0x80004002 (E_NOINTERFACE)` で失敗するため、ネイティブ DLL を再登録したら最新の `COM_Nostr_Native.tlb` も `regtlib` 等で更新し、UnitTest_COM_Nostr の COM 参照を再解決する。
 
 ## Native ビルド準備 (C++/ATL)
 1. `git submodule update --init external/libsecp256k1` を実行し、libsecp256k1 サブモジュールを取得する (初回構築では `--recursive` を併用)。
