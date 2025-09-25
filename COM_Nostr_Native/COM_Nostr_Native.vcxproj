@@ -240,6 +240,7 @@
     <ClInclude Include="include\ComValueHelpers.h" />
     <ClInclude Include="include\NostrHResults.h" />
     <ClInclude Include="include\runtime\ClientRuntimeOptions.h" />
+    <ClInclude Include="include\runtime\ComCallbackDispatcher.h" />
     <ClInclude Include="include\runtime\INativeWebSocket.h" />
     <ClInclude Include="include\runtime\NativeClientResources.h" />
     <ClInclude Include="include\runtime\NativeHttpClient.h" />
@@ -286,6 +287,7 @@
     <ClCompile Include="src\dto\NostrDtoComObjects.cpp" />
     <ClCompile Include="src\serialization\NostrJsonSerializer.cpp" />
     <ClCompile Include="src\runtime\ClientRuntimeOptions.cpp" />
+    <ClCompile Include="src\runtime\ComCallbackDispatcher.cpp" />
     <ClCompile Include="src\runtime\NativeClientResources.cpp" />
     <ClCompile Include="src\runtime\NativeHttpClient.cpp" />
     <ClCompile Include="src\runtime\WinHttpWebSocket.cpp" />

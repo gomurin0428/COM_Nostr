@@ -3,11 +3,19 @@
 #include <atlbase.h>
 #include <atlcom.h>
 
+#include <memory>
+#include <string>
+
 #include "resource.h"
 #include "COMNostrNative_i.h"
+#include "runtime/ClientRuntimeOptions.h"
+#include "runtime/ComCallbackDispatcher.h"
+#include "runtime/NativeClientResources.h"
 
 namespace com::nostr::native
 {
+class NostrJsonSerializer;
+
 class ATL_NO_VTABLE CNostrClient
     : public ATL::CComObjectRootEx<ATL::CComMultiThreadModel>
     , public ATL::CComCoClass<CNostrClient, &CLSID_NostrClient>
@@ -39,6 +47,21 @@ public:
     STDMETHOD(RespondAuth)(BSTR relayUrl, IDispatch* authEvent) override;
     STDMETHOD(RefreshRelayInfo)(BSTR relayUrl) override;
     STDMETHOD(ListRelays)(SAFEARRAY** relayUrls) override;
+
+private:
+    HRESULT NormalizeClientOptions(IDispatch* optionsDispatch,
+                                   ClientRuntimeOptions& optionsOut,
+                                   std::wstring& webSocketProgId) const;
+
+    mutable ATL::CComAutoCriticalSection stateLock_;
+    bool initialized_ = false;
+    bool disposed_ = false;
+    ClientRuntimeOptions options_{};
+    std::wstring webSocketFactoryProgId_;
+    ATL::CComPtr<INostrSigner> signer_;
+    std::unique_ptr<NativeClientResources> resources_;
+    std::shared_ptr<NostrJsonSerializer> serializer_;
+    std::unique_ptr<ComCallbackDispatcher> dispatcher_;
 };
 
 class ATL_NO_VTABLE CNostrRelaySession

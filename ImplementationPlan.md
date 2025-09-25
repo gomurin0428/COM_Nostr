@@ -22,8 +22,8 @@
 ## 詳細タスク
 
 ### INostrClient
-- [ ] `Initialize`: ClientOptions DTO 正規化、`ComCallbackDispatcher` 起動、二重初期化検知 (`E_NOSTR_ALREADY_INITIALIZED`) を追加。
-- [ ] `SetSigner`: `INostrSigner` COM 参照の取得・保持・解放と `E_POINTER`/`E_NOSTR_OBJECT_DISPOSED` ハンドリング。
+- [x] `Initialize`: ClientOptions DTO 正規化、`ComCallbackDispatcher` 起動、二重初期化検知 (`E_NOSTR_ALREADY_INITIALIZED`) を追加。
+- [x] `SetSigner`: `INostrSigner` COM 参照の取得・保持・解放と `E_POINTER`/`E_NOSTR_OBJECT_DISPOSED` ハンドリング。
 - [ ] `ConnectRelay`: RelayDescriptor 検証→セッション生成→NIP-11 取得→WebSocket 接続→セッション辞書登録→`INostrAuthCallback` 通知の流れを実装。
 - [ ] `DisconnectRelay` / `HasRelay` / `ListRelays`: セッション辞書を同期化し、URL 正規化 (`RelayUriUtilities`) を通じて判定。
 - [ ] `OpenSubscription`: フィルタ検証、購読生成、コールバック登録、`SubscriptionOptions` 適用を行い、購読 ID を返す。

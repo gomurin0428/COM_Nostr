@@ -102,3 +102,8 @@
 - 2025-09-25T08:04:46+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で別プロセス実行予定 (IXWebSocket削除後のリンク確認)。
 - 2025-09-25T08:05:19+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 が成功し、WinHTTP 依存のみでビルドが完了することを確認。
 - 2025-09-25T11:16:01+09:00 ImplementationPlan.md を全面改訂し、COM_Nostr_Native 完成に向けた詳細タスク・テスト戦略・マイルストーンを整理。
+- 2025-09-25T11:39:12+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) を20秒タイムアウト想定で実行開始。
+- 2025-09-25T11:40:07+09:00 改修後の確認として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) を再実行開始。
+- 2025-09-25T11:40:50+09:00 CComDispatchDriver 修正後の再ビルドを開始。
+- 2025-09-25T11:41:33+09:00 ComCallbackDispatcher ヘッダ取り込み後に msbuild 再実行開始。
+- 2025-09-25T11:42:02+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) が成功。
