@@ -110,3 +110,7 @@
 - 2025-09-25T11:57:42+09:00 最新変更の検証として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) を再実行開始。
 - 2025-09-25T11:58:29+09:00 CComObject 名前空間修正後に msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) を再実行開始。
 - 2025-09-25T11:58:55+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) が成功。
+- 2025-09-25T12:23:21+09:00 受信ループ実装後の検証として msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) を再実行開始。
+- 2025-09-25T12:25:20+09:00 再ビルドを実行開始 (msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64)。
+- 2025-09-25T12:27:25+09:00 再ビルド (msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64) を開始。
+- 2025-09-25T12:27:56+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj (Debug|x64) が成功。

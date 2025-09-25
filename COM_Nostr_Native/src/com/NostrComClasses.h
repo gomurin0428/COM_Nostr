@@ -3,8 +3,12 @@
 #include <atlbase.h>
 #include <atlcom.h>
 
+#include <atomic>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -17,9 +21,18 @@
 namespace com::nostr::native
 {
 class NostrJsonSerializer;
+class CNostrSubscription;
 
 struct RelaySessionData
 {
+    struct SubscriptionEntry
+    {
+        std::wstring id;
+        ATL::CComPtr<INostrEventCallback> callback;
+        SubscriptionStatus status = SubscriptionStatus_Pending;
+        CNostrSubscription* owner = nullptr;
+    };
+
     RelaySessionData() = default;
     RelaySessionData(const RelaySessionData&) = delete;
     RelaySessionData& operator=(const RelaySessionData&) = delete;
@@ -30,8 +43,27 @@ struct RelaySessionData
     bool preferred = false;
     std::wstring metadataJson;
     std::vector<int> supportedNips;
+
     std::unique_ptr<INativeWebSocket> webSocket;
     ATL::CComPtr<INostrAuthCallback> authCallback;
+
+    ComCallbackDispatcher* dispatcher = nullptr;
+    std::shared_ptr<NostrJsonSerializer> serializer;
+    ClientRuntimeOptions runtimeOptions;
+
+    std::atomic<bool> stopRequested{ false };
+    std::thread receiveThread;
+
+    std::mutex subscriptionMutex;
+    std::unordered_map<std::wstring, std::shared_ptr<SubscriptionEntry>> subscriptions;
+
+    std::mutex lastOkMutex;
+    bool hasLastOk = false;
+    bool lastOkSuccess = false;
+    std::wstring lastOkEventId;
+    std::wstring lastOkMessageText;
+
+    std::atomic<RelaySessionState> state{ RelaySessionState_Disconnected };
 };
 
 class ATL_NO_VTABLE CNostrClient
@@ -103,6 +135,8 @@ public:
     HRESULT Initialize(std::shared_ptr<RelaySessionData> state);
     HRESULT FinalConstruct() noexcept;
     void FinalRelease() noexcept;
+
+    friend class CNostrClient;
 
     // INostrRelaySession
     STDMETHOD(get_Url)(BSTR* value) override;

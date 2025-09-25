@@ -12,18 +12,22 @@
 #include "src/dto/NostrDtoComObjects.h"
 
 #include <atlcomcli.h>
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <cwctype>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 
 using namespace com::nostr::native;
 
 namespace
 {
+    using json = nlohmann::json;
+
     constexpr double kMillisecondsPerSecond = 1000.0;
     constexpr double kMaxTimeoutSeconds = static_cast<double>((std::numeric_limits<long long>::max)()) / kMillisecondsPerSecond;
 
@@ -208,6 +212,524 @@ namespace
 
         return S_OK;
     }
+
+    DWORD ResolveReceiveTimeoutMilliseconds(const RelaySessionData& state)
+    {
+        const auto& receiveTimeout = state.runtimeOptions.ReceiveTimeout();
+        if (receiveTimeout && receiveTimeout->count() > 0)
+        {
+            const long long milliseconds = receiveTimeout->count();
+            if (milliseconds <= 0)
+            {
+                return 1000;
+            }
+
+            if (milliseconds > static_cast<long long>((std::numeric_limits<DWORD>::max)()))
+            {
+                return (std::numeric_limits<DWORD>::max)();
+            }
+
+            return static_cast<DWORD>(milliseconds);
+        }
+
+        return 1000;
+    }
+
+    std::string ExtractMessageType(const std::vector<uint8_t>& payload)
+    {
+        try
+        {
+            const json parsed = json::parse(payload.begin(), payload.end());
+            if (parsed.is_array() && !parsed.empty() && parsed[0].is_string())
+            {
+                return parsed[0].get<std::string>();
+            }
+        }
+        catch (const std::exception&)
+        {
+        }
+
+        return std::string();
+    }
+
+    std::vector<std::shared_ptr<RelaySessionData::SubscriptionEntry>> CollectSubscriptions(const std::shared_ptr<RelaySessionData>& state,
+                                                                                           const std::optional<std::wstring>& subscriptionId)
+    {
+        std::vector<std::shared_ptr<RelaySessionData::SubscriptionEntry>> result;
+        if (!state)
+        {
+            return result;
+        }
+
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        if (subscriptionId && !subscriptionId->empty())
+        {
+            const auto it = state->subscriptions.find(*subscriptionId);
+            if (it != state->subscriptions.end() && it->second)
+            {
+                result.push_back(it->second);
+            }
+        }
+        else
+        {
+            result.reserve(state->subscriptions.size());
+            for (const auto& [id, entry] : state->subscriptions)
+            {
+                if (entry)
+                {
+                    result.push_back(entry);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    void UpdateSubscriptionStatus(const std::shared_ptr<RelaySessionData>& state,
+                                  const std::wstring& subscriptionId,
+                                  SubscriptionStatus status)
+    {
+        if (!state)
+        {
+            return;
+        }
+
+        std::lock_guard<std::mutex> guard(state->subscriptionMutex);
+        const auto it = state->subscriptions.find(subscriptionId);
+        if (it != state->subscriptions.end() && it->second)
+        {
+            it->second->status = status;
+        }
+    }
+
+    void DispatchNotice(const std::shared_ptr<RelaySessionData>& state,
+                        ComCallbackDispatcher* dispatcher,
+                        const std::wstring& message)
+    {
+        if (!state || !dispatcher)
+        {
+            return;
+        }
+
+        const auto targets = CollectSubscriptions(state, std::nullopt);
+        if (targets.empty())
+        {
+            return;
+        }
+
+        for (const auto& target : targets)
+        {
+            if (!target || !target->callback)
+            {
+                continue;
+            }
+
+            INostrEventCallback* callback = target->callback;
+            if (!callback)
+            {
+                continue;
+            }
+
+            callback->AddRef();
+            const std::wstring relayUrl = state->url;
+            const std::wstring noticeText = message;
+            dispatcher->Post([callback, relayUrl, noticeText]() mutable
+            {
+                CComVariant args[2];
+                args[0] = CComVariant(noticeText.c_str());
+                args[1] = CComVariant(relayUrl.c_str());
+
+                DISPPARAMS params{};
+                params.cArgs = 2;
+                params.rgvarg = args;
+
+                callback->Invoke(3, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+                callback->Release();
+            });
+        }
+    }
+
+    void DispatchEndOfStoredEvents(const std::shared_ptr<RelaySessionData>& state,
+                                   ComCallbackDispatcher* dispatcher,
+                                   const std::wstring& subscriptionId)
+    {
+        if (!state || !dispatcher)
+        {
+            return;
+        }
+
+        const auto targets = CollectSubscriptions(state, subscriptionId);
+        if (targets.empty())
+        {
+            return;
+        }
+
+        UpdateSubscriptionStatus(state, subscriptionId, SubscriptionStatus_Active);
+
+        for (const auto& target : targets)
+        {
+            if (!target || !target->callback)
+            {
+                continue;
+            }
+
+            INostrEventCallback* callback = target->callback;
+            if (!callback)
+            {
+                continue;
+            }
+
+            callback->AddRef();
+            const std::wstring relayUrl = state->url;
+            const std::wstring subIdCopy = subscriptionId;
+            dispatcher->Post([callback, relayUrl, subIdCopy]() mutable
+            {
+                CComVariant args[2];
+                args[0] = CComVariant(subIdCopy.c_str());
+                args[1] = CComVariant(relayUrl.c_str());
+
+                DISPPARAMS params{};
+                params.cArgs = 2;
+                params.rgvarg = args;
+
+                callback->Invoke(2, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+                callback->Release();
+            });
+        }
+    }
+
+    void DispatchClosed(const std::shared_ptr<RelaySessionData>& state,
+                        ComCallbackDispatcher* dispatcher,
+                        const std::wstring& subscriptionId,
+                        const std::wstring& reason)
+    {
+        if (!state || !dispatcher)
+        {
+            return;
+        }
+
+        const auto targets = CollectSubscriptions(state, subscriptionId);
+        if (targets.empty())
+        {
+            return;
+        }
+
+        UpdateSubscriptionStatus(state, subscriptionId, SubscriptionStatus_Closed);
+
+        for (const auto& target : targets)
+        {
+            if (!target || !target->callback)
+            {
+                continue;
+            }
+
+            INostrEventCallback* callback = target->callback;
+            if (!callback)
+            {
+                continue;
+            }
+
+            callback->AddRef();
+            const std::wstring relayUrl = state->url;
+            const std::wstring subIdCopy = subscriptionId;
+            const std::wstring reasonCopy = reason;
+            dispatcher->Post([callback, relayUrl, subIdCopy, reasonCopy]() mutable
+            {
+                CComVariant args[3];
+                args[0] = CComVariant(reasonCopy.c_str());
+                args[1] = CComVariant(subIdCopy.c_str());
+                args[2] = CComVariant(relayUrl.c_str());
+
+                DISPPARAMS params{};
+                params.cArgs = 3;
+                params.rgvarg = args;
+
+                callback->Invoke(4, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+                callback->Release();
+            });
+        }
+    }
+
+    void DispatchEventMessage(const std::shared_ptr<RelaySessionData>& state,
+                              ComCallbackDispatcher* dispatcher,
+                              const std::shared_ptr<NostrJsonSerializer>& serializer,
+                              const NostrJsonSerializer::EventMessage& message)
+    {
+        if (!state || !dispatcher || !serializer)
+        {
+            return;
+        }
+
+        const auto targets = CollectSubscriptions(state, message.subscriptionId);
+        if (targets.empty())
+        {
+            return;
+        }
+
+        ATL::CComPtr<INostrEvent> eventDispatch;
+        if (FAILED(serializer->PopulateEventDispatch(message.event, &eventDispatch)))
+        {
+            return;
+        }
+
+        INostrEvent* sharedEvent = eventDispatch;
+        if (!sharedEvent)
+        {
+            return;
+        }
+
+        for (const auto& target : targets)
+        {
+            if (!target || !target->callback)
+            {
+                continue;
+            }
+
+            INostrEventCallback* callback = target->callback;
+            if (!callback)
+            {
+                continue;
+            }
+
+            callback->AddRef();
+            sharedEvent->AddRef();
+            const std::wstring relayUrl = state->url;
+            dispatcher->Post([callback, relayUrl, sharedEvent]() mutable
+            {
+                CComVariant args[2];
+                args[0].vt = VT_DISPATCH;
+                args[0].pdispVal = sharedEvent;
+                args[1] = CComVariant(relayUrl.c_str());
+
+                DISPPARAMS params{};
+                params.cArgs = 2;
+                params.rgvarg = args;
+
+                callback->Invoke(1, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+
+                args[0].pdispVal = nullptr;
+                args[0].vt = VT_EMPTY;
+
+                sharedEvent->Release();
+                callback->Release();
+            });
+        }
+    }
+
+    void DispatchAuthRequired(const std::shared_ptr<RelaySessionData>& state,
+                              ComCallbackDispatcher* dispatcher,
+                              const NostrJsonSerializer::AuthChallengeMessage& message)
+    {
+        if (!state || !dispatcher)
+        {
+            return;
+        }
+
+        ATL::CComPtr<INostrAuthCallback> authCallback = state->authCallback;
+        if (!authCallback)
+        {
+            return;
+        }
+
+        ATL::CComObject<CAuthChallenge>* challenge = nullptr;
+        if (FAILED(ATL::CComObject<CAuthChallenge>::CreateInstance(&challenge)))
+        {
+            return;
+        }
+
+        challenge->AddRef();
+        challenge->put_RelayUrl(CComBSTR(state->url.c_str()));
+        challenge->put_Challenge(CComBSTR(message.challenge.c_str()));
+        if (message.expiresAt)
+        {
+            CComVariant expires(*message.expiresAt);
+            challenge->put_ExpiresAt(expires);
+        }
+
+        ATL::CComPtr<IDispatch> dispatchChallenge;
+        challenge->QueryInterface(IID_IDispatch, reinterpret_cast<void**>(&dispatchChallenge));
+        challenge->Release();
+
+        dispatcher->Post([authCallback, dispatchChallenge]() mutable
+        {
+            CComVariant arg(dispatchChallenge);
+
+            DISPPARAMS params{};
+            params.cArgs = 1;
+            params.rgvarg = &arg;
+
+            authCallback->Invoke(1, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, nullptr, nullptr, nullptr);
+        });
+    }
+
+    void DispatchOkMessage(const std::shared_ptr<RelaySessionData>& state,
+                           ComCallbackDispatcher* dispatcher,
+                           const NostrJsonSerializer::OkMessage& message)
+    {
+        if (!state)
+        {
+            return;
+        }
+
+        {
+            std::lock_guard<std::mutex> guard(state->lastOkMutex);
+            state->hasLastOk = true;
+            state->lastOkSuccess = message.success;
+            state->lastOkEventId = message.eventId;
+            state->lastOkMessageText = message.message;
+        }
+
+        if (!message.success && dispatcher)
+        {
+            DispatchNotice(state, dispatcher, message.message);
+        }
+    }
+
+    void HandleIncomingMessage(const std::shared_ptr<RelaySessionData>& state,
+                               ComCallbackDispatcher* dispatcher,
+                               const std::shared_ptr<NostrJsonSerializer>& serializer,
+                               const NativeWebSocketMessage& message)
+    {
+        if (!state || !dispatcher || !serializer)
+        {
+            return;
+        }
+
+        if (message.bufferType != WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE)
+        {
+            return;
+        }
+
+        const std::string type = ExtractMessageType(message.payload);
+        if (type.empty())
+        {
+            return;
+        }
+
+        try
+        {
+            if (type == "EVENT")
+            {
+                const auto eventMessage = serializer->DeserializeEvent(message.payload);
+                DispatchEventMessage(state, dispatcher, serializer, eventMessage);
+            }
+            else if (type == "EOSE")
+            {
+                const auto eose = serializer->DeserializeEndOfStoredEvents(message.payload);
+                DispatchEndOfStoredEvents(state, dispatcher, eose.subscriptionId);
+            }
+            else if (type == "NOTICE")
+            {
+                const auto notice = serializer->DeserializeNotice(message.payload);
+                DispatchNotice(state, dispatcher, notice.message);
+            }
+            else if (type == "AUTH")
+            {
+                const auto auth = serializer->DeserializeAuthChallenge(message.payload);
+                DispatchAuthRequired(state, dispatcher, auth);
+            }
+            else if (type == "OK")
+            {
+                const auto ok = serializer->DeserializeOk(message.payload);
+                DispatchOkMessage(state, dispatcher, ok);
+            }
+            else if (type == "CLOSED")
+            {
+                const auto closed = serializer->DeserializeClosed(message.payload);
+                DispatchClosed(state, dispatcher, closed.subscriptionId, closed.reason);
+            }
+        }
+        catch (const std::exception&)
+        {
+        }
+    }
+
+    void RunReceiveLoop(const std::shared_ptr<RelaySessionData>& state)
+    {
+        if (!state)
+        {
+            return;
+        }
+
+        const DWORD timeout = ResolveReceiveTimeoutMilliseconds(*state);
+
+        while (!state->stopRequested.load(std::memory_order_acquire))
+        {
+            if (!state->webSocket)
+            {
+                break;
+            }
+
+            NativeWebSocketMessage message;
+            const HRESULT hr = state->webSocket->Receive(timeout, message);
+            if (hr == hresults::Timeout())
+            {
+                continue;
+            }
+
+            if (FAILED(hr))
+            {
+                if (!state->stopRequested.load(std::memory_order_acquire))
+                {
+                    state->state.store(RelaySessionState_Faulted, std::memory_order_release);
+                }
+                break;
+            }
+
+            HandleIncomingMessage(state, state->dispatcher, state->serializer, message);
+        }
+
+        state->stopRequested.store(true, std::memory_order_release);
+    }
+
+    void StartReceiveLoop(const std::shared_ptr<RelaySessionData>& state)
+    {
+        if (!state)
+        {
+            return;
+        }
+
+        if (!state->dispatcher || !state->serializer)
+        {
+            return;
+        }
+
+        state->stopRequested.store(false, std::memory_order_release);
+        state->receiveThread = std::thread([weakState = std::weak_ptr<RelaySessionData>(state)]()
+        {
+            try
+            {
+                if (auto locked = weakState.lock())
+                {
+                    RunReceiveLoop(locked);
+                }
+            }
+            catch (const std::exception&)
+            {
+            }
+        });
+    }
+
+    void StopReceiveLoop(const std::shared_ptr<RelaySessionData>& state)
+    {
+        if (!state)
+        {
+            return;
+        }
+
+        state->stopRequested.store(true, std::memory_order_release);
+        if (state->webSocket)
+        {
+            state->webSocket->Abort();
+        }
+
+        if (state->receiveThread.joinable())
+        {
+            state->receiveThread.join();
+        }
+
+        state->state.store(RelaySessionState_Disconnected, std::memory_order_release);
+    }
 }
 
 HRESULT CNostrClient::FinalConstruct() noexcept
@@ -230,9 +752,17 @@ void CNostrClient::FinalRelease() noexcept
     for (auto& pair : sessions)
     {
         const auto& entry = pair.second;
-        if (entry && entry->webSocket)
+        if (!entry)
+        {
+            continue;
+        }
+
+        StopReceiveLoop(entry);
+
+        if (entry->webSocket)
         {
             entry->webSocket->Close(WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS, std::wstring());
+            entry->webSocket.reset();
         }
     }
 
@@ -543,6 +1073,10 @@ STDMETHODIMP CNostrClient::ConnectRelay(IDispatch* descriptor, INostrAuthCallbac
     entry->supportedNips = relayInfo.supportedNips;
     entry->webSocket = std::move(webSocket);
     entry->authCallback = std::move(authCallbackPtr);
+    entry->dispatcher = dispatcher_.get();
+    entry->serializer = serializer_;
+    entry->runtimeOptions = runtimeOptions;
+    entry->state.store(RelaySessionState_Connected, std::memory_order_release);
 
     ATL::CComObject<CNostrRelaySession>* sessionObject = nullptr;
     hr = ATL::CComObject<CNostrRelaySession>::CreateInstance(&sessionObject);
@@ -578,6 +1112,8 @@ STDMETHODIMP CNostrClient::ConnectRelay(IDispatch* descriptor, INostrAuthCallbac
             return hresults::InvalidArgument();
         }
     }
+
+    StartReceiveLoop(entry);
 
     *session = sessionObject;
     return S_OK;
@@ -620,9 +1156,16 @@ STDMETHODIMP CNostrClient::DisconnectRelay(BSTR relayUrl)
         relaySessions_.erase(it);
     }
 
-    if (entry && entry->webSocket)
+    if (entry)
     {
-        entry->webSocket->Close(WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS, std::wstring());
+        StopReceiveLoop(entry);
+        if (entry->webSocket)
+        {
+            entry->webSocket->Close(WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS, std::wstring());
+            entry->webSocket.reset();
+        }
+
+        entry->authCallback.Release();
     }
 
     return S_OK;
@@ -782,14 +1325,61 @@ STDMETHODIMP CNostrRelaySession::get_State(RelaySessionState* value)
         return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
     }
 
-    *value = state->webSocket ? RelaySessionState_Connected : RelaySessionState_Disconnected;
+    *value = state->state.load(std::memory_order_acquire);
     return S_OK;
 }
 
 STDMETHODIMP CNostrRelaySession::get_LastOkResult(IDispatch** value)
 {
-    UNREFERENCED_PARAMETER(value);
-    return E_NOTIMPL;
+    if (!value)
+    {
+        return hresults::PointerRequired();
+    }
+
+    *value = nullptr;
+
+    const auto state = state_.lock();
+    if (!state)
+    {
+        return hresults::E_NOSTR_RELAY_NOT_CONNECTED;
+    }
+
+    bool success = false;
+    std::wstring eventId;
+    std::wstring message;
+    bool hasValue = false;
+
+    {
+        std::lock_guard<std::mutex> guard(state->lastOkMutex);
+        hasValue = state->hasLastOk;
+        if (hasValue)
+        {
+            success = state->lastOkSuccess;
+            eventId = state->lastOkEventId;
+            message = state->lastOkMessageText;
+        }
+    }
+
+    if (!hasValue)
+    {
+        return S_FALSE;
+    }
+
+    ATL::CComObject<CNostrOkResult>* ok = nullptr;
+    HRESULT hr = ATL::CComObject<CNostrOkResult>::CreateInstance(&ok);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    ok->AddRef();
+    ok->put_Success(success ? VARIANT_TRUE : VARIANT_FALSE);
+    ok->put_EventId(CComBSTR(eventId.c_str()));
+    ok->put_Message(CComBSTR(message.c_str()));
+
+    hr = ok->QueryInterface(IID_IDispatch, reinterpret_cast<void**>(value));
+    ok->Release();
+    return hr;
 }
 STDMETHODIMP CNostrRelaySession::get_SupportedNips(SAFEARRAY** value)
 {
