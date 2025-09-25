@@ -101,3 +101,4 @@
 - 2025-09-25T08:04:35+09:00 build/native-deps.ps1 -Configuration Debug が成功し、libsecp256k1 Debug 生成のみで完了することを確認。
 - 2025-09-25T08:04:46+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 をタイムアウト20秒で別プロセス実行予定 (IXWebSocket削除後のリンク確認)。
 - 2025-09-25T08:05:19+09:00 msbuild COM_Nostr_Native/COM_Nostr_Native.vcxproj /p:Configuration=Debug /p:Platform=x64 が成功し、WinHTTP 依存のみでビルドが完了することを確認。
+- 2025-09-25T11:16:01+09:00 ImplementationPlan.md を全面改訂し、COM_Nostr_Native 完成に向けた詳細タスク・テスト戦略・マイルストーンを整理。
